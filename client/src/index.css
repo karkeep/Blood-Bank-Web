@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  
+  /* Primary: red */
+  --primary: 0 65% 51%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Secondary: green */
+  --secondary: 122 39% 34%;
+  --secondary-foreground: 0 0% 100%;
+  
+  /* Accent: blue */
+  --accent: 210 79% 46%;
+  --accent-foreground: 0 0% 100%;
+  
+  /* Blood type colors */
+  --chart-1: 0 66% 69%; /* A+ */
+  --chart-2: 122 41% 52%; /* B+ */
+  --chart-3: 206 86% 68%; /* AB+ */
+  --chart-4: 36 100% 65%; /* O+ */
+  --chart-5: 0 77% 83%; /* A- */
+  
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
+  --radius: 0.5rem;
+  
+  /* Sidebar colors (using common values) */
+  --sidebar-background: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  
+  /* Primary: red */
+  --primary: 0 65% 51%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Secondary: green */
+  --secondary: 122 39% 34%;
+  --secondary-foreground: 0 0% 100%;
+  
+  /* Accent: blue */
+  --accent: 210 79% 46%;
+  --accent-foreground: 0 0% 100%;
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  
+  /* Sidebar colors (using common values) */
+  --sidebar-background: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Blood Type Badge Styling */
+.blood-type {
+  @apply w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shadow-md;
+}
+
+.blood-type-apos {
+  background-color: hsl(0, 66%, 69%);
+}
+
+.blood-type-bpos {
+  background-color: hsl(122, 41%, 52%);
+}
+
+.blood-type-abpos {
+  background-color: hsl(206, 86%, 68%);
+}
+
+.blood-type-opos {
+  background-color: hsl(36, 100%, 65%);
+}
+
+.blood-type-aneg {
+  background-color: hsl(0, 77%, 83%);
+}
+
+.blood-type-bneg {
+  background-color: hsl(122, 47%, 74%);
+}
+
+.blood-type-abneg {
+  background-color: hsl(206, 82%, 77%);
+}
+
+.blood-type-oneg {
+  background-color: hsl(36, 100%, 82%);
+}
+
+/* Emergency Button Styles */
+.emergency-button {
+  @apply transition-all duration-300;
+}
+
+.emergency-button:hover {
+  @apply transform scale-105;
+}
+
+.emergency-button:active {
+  @apply transform scale-[0.98];
+}
+
+/* Donor Card Styles */
+.donor-card {
+  @apply transition-transform duration-200;
+}
+
+.donor-card:hover {
+  @apply transform -translate-y-1;
+}
+
+/* Map Styles */
+.map-container {
+  @apply h-[350px] bg-gray-100 relative overflow-hidden;
+}
+
+.map-placeholder {
+  @apply absolute inset-0 flex flex-col items-center justify-center;
+}
+
+.location-marker {
+  @apply w-4 h-4 rounded-full border-2 border-white shadow-md;
+}
+
+.cluster-marker {
+  @apply w-8 h-8 rounded-full bg-primary/70 border-2 border-white shadow-md flex items-center justify-center text-white font-bold;
+}
