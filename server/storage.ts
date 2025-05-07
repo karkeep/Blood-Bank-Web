@@ -8,7 +8,12 @@ import {
   DonationRecord,
   InsertDonationRecord,
   Document,
-  InsertDocument
+  InsertDocument,
+  users,
+  donorProfiles,
+  emergencyRequests,
+  donationRecords,
+  documents
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -133,8 +138,16 @@ export class MemStorage implements IStorage {
     this.donationIdCounter = 1;
     this.documentIdCounter = 1;
     
-    // This would use a memory store in development
-    this.sessionStore = new session.Store();
+    // Use a simple object to implement session.Store for in-memory storage
+    this.sessionStore = {
+      all: (callback: (err: any, obj?: { [sid: string]: session.SessionData } | null) => void) => { callback(null, {}); },
+      destroy: (sid: string, callback?: (err?: any) => void) => { if (callback) callback(); },
+      clear: (callback?: (err?: any) => void) => { if (callback) callback(); },
+      length: (callback: (err: any, length?: number) => void) => { callback(null, 0); },
+      get: (sid: string, callback: (err: any, session?: session.SessionData | null) => void) => { callback(null, null); },
+      set: (sid: string, session: session.SessionData, callback?: (err?: any) => void) => { if (callback) callback(); },
+      touch: (sid: string, session: session.SessionData, callback?: (err?: any) => void) => { if (callback) callback(); }
+    } as session.Store;
     
     // Create an admin user
     this.createUser({
@@ -167,7 +180,7 @@ export class MemStorage implements IStorage {
 
   async createUser(userData: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
-    const now = new Date().toISOString();
+    const now = new Date();
     
     const user: User = {
       id,
@@ -190,7 +203,7 @@ export class MemStorage implements IStorage {
       ...user,
       ...userData,
       id, // Ensure ID doesn't change
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date()
     };
     
     this.users.set(id, updatedUser);
@@ -707,11 +720,11 @@ export class DatabaseStorage implements IStorage {
     });
     
     // Determine badge based on total donations
-    let badge = 'Bronze' as const;
+    let badge: "Bronze" | "Silver" | "Gold" = "Bronze";
     if (profile.totalDonations + 1 >= 20) {
-      badge = 'Gold' as const;
+      badge = "Gold";
     } else if (profile.totalDonations + 1 >= 10) {
-      badge = 'Silver' as const;
+      badge = "Silver";
     }
     
     await this.updateDonorProfile(donorId, { badge });
@@ -798,11 +811,17 @@ export class DatabaseStorage implements IStorage {
   // ============= Document Methods =============
   
   async createDocument(documentData: InsertDocument): Promise<Document> {
+    // Set initial values for fields that need explicit initialization
+    const now = new Date();
+    const verificationStatus: "Pending" | "Unverified" | "Verified" = "Pending";
+    
     const [document] = await db
       .insert(documents)
       .values({
         ...documentData,
-        uploadedAt: new Date(),
+        verificationStatus,
+        uploadedAt: now,
+        verifiedAt: null
       })
       .returning();
     return document;
