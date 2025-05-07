@@ -1,0 +1,207 @@
+Project Name: LifeLink - Emergency Blood Donor Network
+
+Core Objective: Create a global emergency blood donor coordination system with a user-friendly interface and robust backend to connect verified donors with recipients in critical situations.
+
+Frontend Requirements
+1. Home Screen Structure:
+
+Navigation Bar:
+
+Dynamic "Recent Activity" section (displaying anonymized stats from server: recent donations, emergency requests, success stories)
+
+Smart Login Button (changes to profile dropdown after authentication)
+
+Emergency Request Button (prominent red floating action button)
+
+2. Hero Section:
+
+Top Donor Spotlight:
+
+Interactive carousel with 3 top donors (blurred profile images over gradient overlays)
+
+Display: Total donations | Liters donated | Lives saved
+
+Badge system (Bronze/Silver/Gold donor tiers)
+
+3. Geo-Analytics Dashboard:
+
+Top Cities Visualization:
+
+Dual heatmaps:
+
+Top 10 cities with highest donors (green spectrum)
+
+Bottom 10 cities needing donors (red spectrum)
+
+Auto-detect country via IP + manual selection override
+
+Animated bar charts with donation frequency per blood group
+
+4. City Blood Inventory System:
+
+Interactive map with cluster markers
+
+Dynamic filters:
+
+Blood type (A+/O-/etc.)
+
+Donation recency (Last 24hrs/Week/Month)
+
+Emergency status (Critical/Low/Stable)
+
+Exportable data tables with city-wise stats:
+
+Total donations
+
+Active donors
+
+Blood bank inventory levels
+
+User Flow Requirements
+1. Registration System:
+
+Strict KYC Process:
+
+Document upload (National ID + Live selfie with webcam capture)
+
+Family verification (Parent names cross-checked with national database)
+
+Location validation (GPS coordinates + address proof)
+
+Medical history form (Genetic disorders, chronic illnesses, vaccination history)
+
+2. Donor Profile:
+
+Health Dashboard:
+
+Visual timeline of donations
+
+Eligibility countdown (next allowed donation date)
+
+Blood health metrics (Hemoglobin trends, iron levels - if available)
+
+Emergency availability toggle
+
+3. Emergency Request System:
+
+Smart Matching Algorithm:
+
+Auto-prioritize donors by:
+
+Blood type compatibility
+
+Proximity (real-time traffic analysis)
+
+Recent health status
+
+Donation eligibility status
+
+Multi-channel notifications (SMS/Email/Push/IVR call)
+
+Live donor tracking map during emergencies
+
+4. Donor-Requester Communication:
+
+Encrypted chat with auto-translation
+
+Location sharing with dynamic ETA calculation
+
+Emergency medical info exchange (blood type confirmation, hospital details)
+
+Admin Panel Specifications
+1. Multi-Level Access Control:
+
+Super Admin → Regional Admins → Hospital Admins
+
+Audit trails for all critical actions
+
+2. Fraud Prevention System:
+
+AI-powered document verification
+
+Behavior analysis for scam detection
+
+Report management dashboard with case prioritization
+
+3. Real-Time Monitoring:
+
+Global blood inventory heatmap
+
+Emergency request tracker with escalation protocols
+
+Donor-recipient matching analytics
+
+4. Advanced Features:
+
+Disaster mode activation (mass casualty events)
+
+Blood shortage prediction models
+
+Mobile blood drive coordination module
+
+Technical Specifications
+Backend Architecture:
+
+Microservices design pattern
+
+Core modules:
+
+Identity Management (Firebase Auth + Custom RBAC)
+
+Emergency Handling Engine (WebSocket for real-time updates)
+
+Geo-Spatial Service (Mapbox + GPS tracking)
+
+Notification Orchestrator (Twilio + FCM + Email)
+
+AI Verification Layer (TensorFlow for document analysis)
+
+Database Design:
+
+Primary: Firebase Firestore (for real-time features)
+
+Secondary: PostgreSQL (for relational data)
+
+Cache: Redis (for emergency request handling)
+
+Security Requirements:
+
+End-to-end encryption for medical data
+
+HIPAA-compliant data handling
+
+Regular penetration testing schedule
+
+JWT-based session management with refresh tokens
+
+Scalability Features:
+
+Serverless architecture for critical paths
+
+Auto-scaling donor matching algorithm
+
+Modular codebase with feature flags
+
+Future-Proofing
+Plugin architecture for new features
+
+Webhook system for 3rd party integrations
+
+Multi-language support framework
+
+Blockchain integration roadmap for donor records
+
+IoT compatibility layer for hospital devices
+
+Deliverables
+Responsive Progressive Web App
+
+Admin Dashboard with BI Tools
+
+Mobile-First Emergency Interface
+
+API Documentation (Swagger)
+
+Automated Test Suite (Cypress + Jest)
+
+Deployment Pipeline (CI/CD)
