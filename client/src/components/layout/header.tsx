@@ -29,34 +29,24 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between py-3">
           <div className="flex items-center mb-3 md:mb-0">
-            <Link href="/">
-              <a className="text-primary font-bold text-2xl">
-                Life<span className="text-accent">Link</span>
-              </a>
+            <Link href="/" className="text-primary font-bold text-2xl">
+              Life<span className="text-accent">Link</span>
             </Link>
             <div className="hidden md:flex ml-8 space-x-6">
-              <Link href="/">
-                <a className={`text-gray-700 hover:text-primary font-medium ${location === "/" ? "text-primary" : ""}`}>
-                  Home
-                </a>
+              <Link href="/" className={`text-gray-700 hover:text-primary font-medium ${location === "/" ? "text-primary" : ""}`}>
+                Home
               </Link>
-              <Link href="/find-donors">
-                <a className={`text-gray-700 hover:text-primary font-medium ${location === "/find-donors" ? "text-primary" : ""}`}>
-                  Find Donors
-                </a>
+              <Link href="/find-donors" className={`text-gray-700 hover:text-primary font-medium ${location === "/find-donors" ? "text-primary" : ""}`}>
+                Find Donors
               </Link>
               {user && (
-                <Link href="/profile">
-                  <a className={`text-gray-700 hover:text-primary font-medium ${location === "/profile" ? "text-primary" : ""}`}>
-                    My Profile
-                  </a>
+                <Link href="/profile" className={`text-gray-700 hover:text-primary font-medium ${location === "/profile" ? "text-primary" : ""}`}>
+                  My Profile
                 </Link>
               )}
               {user && user.isAdmin && (
-                <Link href="/admin">
-                  <a className={`text-gray-700 hover:text-primary font-medium ${location === "/admin" ? "text-primary" : ""}`}>
-                    Admin
-                  </a>
+                <Link href="/admin" className={`text-gray-700 hover:text-primary font-medium ${location === "/admin" ? "text-primary" : ""}`}>
+                  Admin
                 </Link>
               )}
             </div>
@@ -108,40 +98,36 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="py-3 md:hidden">
             <div className="flex flex-col space-y-2">
-              <Link href="/">
-                <a 
-                  className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/" ? "text-primary" : ""}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Home
-                </a>
+              <Link 
+                href="/" 
+                className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/" ? "text-primary" : ""}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
               </Link>
-              <Link href="/find-donors">
-                <a 
-                  className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/find-donors" ? "text-primary" : ""}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Find Donors
-                </a>
+              <Link 
+                href="/find-donors"
+                className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/find-donors" ? "text-primary" : ""}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Find Donors
               </Link>
               {user && (
-                <Link href="/profile">
-                  <a 
-                    className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/profile" ? "text-primary" : ""}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    My Profile
-                  </a>
+                <Link 
+                  href="/profile"
+                  className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/profile" ? "text-primary" : ""}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Profile
                 </Link>
               )}
               {user && user.isAdmin && (
-                <Link href="/admin">
-                  <a 
-                    className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/admin" ? "text-primary" : ""}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Admin
-                  </a>
+                <Link 
+                  href="/admin"
+                  className={`text-gray-700 hover:text-primary font-medium py-1 ${location === "/admin" ? "text-primary" : ""}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin
                 </Link>
               )}
             </div>
