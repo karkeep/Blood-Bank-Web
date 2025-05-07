@@ -10,8 +10,11 @@ import {
   Document,
   InsertDocument
 } from "@shared/schema";
-import createMemoryStore from "memorystore";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { pool } from "./db";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 // Define types for mock data
 type RecentActivity = {
@@ -50,7 +53,7 @@ type AdminStats = {
   };
 };
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User Methods
@@ -130,9 +133,8 @@ export class MemStorage implements IStorage {
     this.donationIdCounter = 1;
     this.documentIdCounter = 1;
     
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-    });
+    // This would use a memory store in development
+    this.sessionStore = new session.Store();
     
     // Create an admin user
     this.createUser({
@@ -543,4 +545,433 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
+  }
+
+  // ============= User Methods =============
+  
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .returning();
+    return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<User>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        ...userData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+      
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+
+  // ============= Donor Profile Methods =============
+  
+  async getDonorProfileByUserId(userId: number): Promise<DonorProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(donorProfiles)
+      .where(eq(donorProfiles.userId, userId));
+    return profile;
+  }
+  
+  async createDonorProfile(profileData: InsertDonorProfile): Promise<DonorProfile> {
+    const [profile] = await db
+      .insert(donorProfiles)
+      .values(profileData)
+      .returning();
+    return profile;
+  }
+  
+  async updateDonorProfile(userId: number, profileData: Partial<DonorProfile>): Promise<DonorProfile> {
+    const [profile] = await db
+      .select()
+      .from(donorProfiles)
+      .where(eq(donorProfiles.userId, userId));
+      
+    if (!profile) {
+      throw new Error("Donor profile not found");
+    }
+    
+    const [updatedProfile] = await db
+      .update(donorProfiles)
+      .set(profileData)
+      .where(eq(donorProfiles.userId, userId))
+      .returning();
+      
+    return updatedProfile;
+  }
+  
+  async getAllDonors(): Promise<(User & { donorProfile: DonorProfile })[]> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.role, 'donor'))
+      .leftJoin(donorProfiles, eq(users.id, donorProfiles.userId));
+      
+    return result.map(({ users, donor_profiles }) => ({
+      ...users,
+      donorProfile: donor_profiles as DonorProfile
+    })).filter(donor => donor.donorProfile !== null);
+  }
+  
+  async getDonorsByBloodType(bloodType: string): Promise<(User & { donorProfile: DonorProfile })[]> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.role, 'donor'), eq(users.bloodType, bloodType)))
+      .leftJoin(donorProfiles, eq(users.id, donorProfiles.userId));
+      
+    return result.map(({ users, donor_profiles }) => ({
+      ...users,
+      donorProfile: donor_profiles as DonorProfile
+    })).filter(donor => donor.donorProfile !== null);
+  }
+  
+  async getTopDonors(limit: number = 3): Promise<(User & { donorProfile: DonorProfile })[]> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.role, 'donor'))
+      .leftJoin(donorProfiles, eq(users.id, donorProfiles.userId))
+      .orderBy(desc(donorProfiles.totalDonations))
+      .limit(limit);
+      
+    return result.map(({ users, donor_profiles }) => ({
+      ...users,
+      donorProfile: donor_profiles as DonorProfile
+    })).filter(donor => donor.donorProfile !== null);
+  }
+  
+  async updateDonorStats(donorId: number, donationVolume: number): Promise<void> {
+    const user = await this.getUser(donorId);
+    if (!user || user.role !== 'donor') {
+      throw new Error("Donor not found");
+    }
+    
+    const profile = await this.getDonorProfileByUserId(donorId);
+    if (!profile) {
+      throw new Error("Donor profile not found");
+    }
+    
+    // Update donor profile stats
+    await this.updateDonorProfile(donorId, {
+      totalDonations: profile.totalDonations + 1,
+      litersDonated: profile.litersDonated + donationVolume,
+      livesSaved: profile.livesSaved + Math.floor(donationVolume / 150),
+      lastDonationDate: new Date(),
+      nextEligibleDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000)
+    });
+    
+    // Determine badge based on total donations
+    let badge = 'Bronze' as const;
+    if (profile.totalDonations + 1 >= 20) {
+      badge = 'Gold' as const;
+    } else if (profile.totalDonations + 1 >= 10) {
+      badge = 'Silver' as const;
+    }
+    
+    await this.updateDonorProfile(donorId, { badge });
+  }
+
+  // ============= Emergency Request Methods =============
+  
+  async createEmergencyRequest(requestData: InsertEmergencyRequest): Promise<EmergencyRequest> {
+    const [request] = await db
+      .insert(emergencyRequests)
+      .values({
+        ...requestData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return request;
+  }
+  
+  async getEmergencyRequestById(id: number): Promise<EmergencyRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(emergencyRequests)
+      .where(eq(emergencyRequests.id, id));
+    return request;
+  }
+  
+  async updateEmergencyRequest(id: number, requestData: Partial<EmergencyRequest>): Promise<EmergencyRequest> {
+    const [updatedRequest] = await db
+      .update(emergencyRequests)
+      .set({
+        ...requestData,
+        updatedAt: new Date()
+      })
+      .where(eq(emergencyRequests.id, id))
+      .returning();
+      
+    if (!updatedRequest) {
+      throw new Error("Emergency request not found");
+    }
+    
+    return updatedRequest;
+  }
+  
+  async getAllEmergencyRequests(): Promise<EmergencyRequest[]> {
+    return db.select().from(emergencyRequests);
+  }
+  
+  async getActiveEmergencyRequests(): Promise<EmergencyRequest[]> {
+    const now = new Date();
+    return db
+      .select()
+      .from(emergencyRequests)
+      .where(
+        and(
+          sql`${emergencyRequests.expiresAt} > ${now}`,
+          sql`${emergencyRequests.status} IN ('Pending', 'Matching')`
+        )
+      );
+  }
+
+  // ============= Donation Record Methods =============
+  
+  async createDonationRecord(recordData: InsertDonationRecord): Promise<DonationRecord> {
+    const [record] = await db
+      .insert(donationRecords)
+      .values(recordData)
+      .returning();
+    return record;
+  }
+  
+  async getDonationsByDonorId(donorId: number): Promise<DonationRecord[]> {
+    return db
+      .select()
+      .from(donationRecords)
+      .where(eq(donationRecords.donorId, donorId))
+      .orderBy(desc(donationRecords.donationDate));
+  }
+  
+  async getAllDonations(): Promise<DonationRecord[]> {
+    return db.select().from(donationRecords);
+  }
+
+  // ============= Document Methods =============
+  
+  async createDocument(documentData: InsertDocument): Promise<Document> {
+    const [document] = await db
+      .insert(documents)
+      .values({
+        ...documentData,
+        uploadedAt: new Date(),
+      })
+      .returning();
+    return document;
+  }
+  
+  async getDocumentById(id: number): Promise<Document | undefined> {
+    const [document] = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, id));
+    return document;
+  }
+  
+  async getDocumentsByUserId(userId: number): Promise<Document[]> {
+    return db
+      .select()
+      .from(documents)
+      .where(eq(documents.userId, userId))
+      .orderBy(desc(documents.uploadedAt));
+  }
+  
+  async verifyDocument(id: number, status: string, notes?: string): Promise<Document> {
+    const document = await this.getDocumentById(id);
+    if (!document) {
+      throw new Error("Document not found");
+    }
+    
+    const verificationStatus = status as "Unverified" | "Pending" | "Verified";
+    
+    const [updatedDocument] = await db
+      .update(documents)
+      .set({
+        verificationStatus,
+        notes: notes || document.notes,
+        verifiedAt: new Date()
+      })
+      .where(eq(documents.id, id))
+      .returning();
+    
+    // If all documents are verified, update user's verification status
+    if (status === 'Verified') {
+      const userDocuments = await this.getDocumentsByUserId(document.userId);
+      const allVerified = userDocuments.every(doc => doc.verificationStatus === 'Verified');
+      
+      if (allVerified) {
+        const profile = await this.getDonorProfileByUserId(document.userId);
+        if (profile) {
+          await this.updateDonorProfile(document.userId, {
+            verificationStatus: 'Verified' as const
+          });
+        }
+      }
+    }
+    
+    return updatedDocument;
+  }
+  
+  // ============= Analytics Methods =============
+  
+  async getRecentActivities(): Promise<RecentActivity[]> {
+    // This would normally be built from real data
+    // For demo purposes, we're returning placeholder data
+    return [
+      {
+        id: "1",
+        type: "match",
+        message: "A+ donor matched in New York",
+        timeAgo: "2 minutes ago"
+      },
+      {
+        id: "2",
+        type: "fulfilled",
+        message: "Emergency request fulfilled in Chicago",
+        timeAgo: "15 minutes ago"
+      },
+      {
+        id: "3",
+        type: "request",
+        message: "New O- request in Los Angeles",
+        timeAgo: "28 minutes ago"
+      }
+    ];
+  }
+  
+  async getCityInventory(): Promise<CityInventory[]> {
+    // This would normally be built from real data
+    // For demo purposes, we're returning placeholder data
+    return [
+      {
+        id: "1",
+        name: "New York City",
+        status: "Critical",
+        inventoryLevels: [
+          { type: "O-", percentage: 10 },
+          { type: "A+", percentage: 45 }
+        ]
+      },
+      {
+        id: "2",
+        name: "Los Angeles",
+        status: "Low",
+        inventoryLevels: [
+          { type: "B+", percentage: 30 },
+          { type: "AB-", percentage: 55 }
+        ]
+      },
+      {
+        id: "3",
+        name: "Chicago",
+        status: "Stable",
+        inventoryLevels: [
+          { type: "A-", percentage: 85 },
+          { type: "O+", percentage: 90 }
+        ]
+      },
+      {
+        id: "4",
+        name: "Houston",
+        status: "Critical",
+        inventoryLevels: [
+          { type: "O+", percentage: 25 },
+          { type: "B-", percentage: 15 }
+        ]
+      }
+    ];
+  }
+  
+  async getTopDonorCities(): Promise<DonorCity[]> {
+    // This would normally be built from real data
+    // For demo purposes, we're returning placeholder data
+    return [
+      { id: "1", name: "San Francisco", value: 1245, percentage: 100 },
+      { id: "2", name: "Seattle", value: 1053, percentage: 85 },
+      { id: "3", name: "Boston", value: 928, percentage: 75 },
+      { id: "4", name: "Austin", value: 804, percentage: 65 },
+      { id: "5", name: "Denver", value: 682, percentage: 55 }
+    ];
+  }
+  
+  async getCitiesNeedingDonors(): Promise<DonorCity[]> {
+    // This would normally be built from real data
+    // For demo purposes, we're returning placeholder data
+    return [
+      { id: "1", name: "Detroit", value: 68, percentage: 100 },
+      { id: "2", name: "Cleveland", value: 62, percentage: 90 },
+      { id: "3", name: "Memphis", value: 55, percentage: 80 },
+      { id: "4", name: "El Paso", value: 48, percentage: 70 },
+      { id: "5", name: "Baltimore", value: 42, percentage: 60 }
+    ];
+  }
+  
+  // ============= Admin Methods =============
+  
+  async getAdminStats(): Promise<AdminStats> {
+    // This would normally be calculated from real data
+    // For demo purposes, we're returning placeholder data
+    return {
+      totalDonors: 8475,
+      activeEmergencies: 14,
+      donationsThisMonth: 327,
+      livesSaved: 981,
+      growth: {
+        donors: 8.5,
+        emergencies: -3.2,
+        donations: 12.7
+      }
+    };
+  }
+}
+
+// Initialize with database storage
+export const storage = new DatabaseStorage();

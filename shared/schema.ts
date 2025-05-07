@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, jsonb, timestamp, varchar, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // Enum types as string literals
 const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
@@ -117,3 +118,47 @@ export type DonationRecord = typeof donationRecords.$inferSelect;
 
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
+
+// Define relations between tables
+export const usersRelations = relations(users, ({ one, many }) => ({
+  donorProfile: one(donorProfiles, {
+    fields: [users.id],
+    references: [donorProfiles.userId],
+  }),
+  emergencyRequests: many(emergencyRequests),
+  donationRecords: many(donationRecords),
+  documents: many(documents),
+}));
+
+export const donorProfilesRelations = relations(donorProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [donorProfiles.userId],
+    references: [users.id],
+  }),
+}));
+
+export const emergencyRequestsRelations = relations(emergencyRequests, ({ one, many }) => ({
+  requester: one(users, {
+    fields: [emergencyRequests.requesterId],
+    references: [users.id],
+  }),
+  donationRecords: many(donationRecords),
+}));
+
+export const donationRecordsRelations = relations(donationRecords, ({ one }) => ({
+  donor: one(users, {
+    fields: [donationRecords.donorId],
+    references: [users.id],
+  }),
+  request: one(emergencyRequests, {
+    fields: [donationRecords.requestId],
+    references: [emergencyRequests.id],
+  }),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  user: one(users, {
+    fields: [documents.userId],
+    references: [users.id],
+  }),
+}));
