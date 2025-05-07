@@ -295,17 +295,17 @@ export class MemStorage implements IStorage {
       totalDonations: profile.totalDonations + 1,
       litersDonated: profile.litersDonated + donationVolume,
       livesSaved: profile.livesSaved + Math.floor(donationVolume / 150), // 450ml can save up to 3 lives
-      lastDonationDate: new Date().toISOString(),
+      lastDonationDate: new Date(),
       // Set next eligible date to 56 days from now
-      nextEligibleDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000).toISOString()
+      nextEligibleDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000)
     });
     
     // Determine badge based on total donations
-    let badge = 'Bronze';
+    let badge: "Bronze" | "Silver" | "Gold" = "Bronze";
     if (profile.totalDonations + 1 >= 20) {
-      badge = 'Gold';
+      badge = "Gold";
     } else if (profile.totalDonations + 1 >= 10) {
-      badge = 'Silver';
+      badge = "Silver";
     }
     
     await this.updateDonorProfile(donorId, { badge });
@@ -593,9 +593,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: InsertUser): Promise<User> {
+    // Handle bloodType separately to ensure type safety
+    const bloodType = userData.bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+    const role = userData.role as "donor" | "requester" | "admin" || "donor";
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({
+        ...userData,
+        bloodType,
+        role
+      })
       .returning();
     return user;
   }
@@ -632,9 +640,19 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createDonorProfile(profileData: InsertDonorProfile): Promise<DonorProfile> {
+    // Set default values and handle enums properly
+    const status = (profileData.status || "Pending") as "Pending" | "Available" | "Unavailable";
+    const badge = (profileData.badge || "Bronze") as "Bronze" | "Silver" | "Gold";
+    const verificationStatus = (profileData.verificationStatus || "Unverified") as "Pending" | "Unverified" | "Verified";
+    
     const [profile] = await db
       .insert(donorProfiles)
-      .values(profileData)
+      .values({
+        ...profileData,
+        status,
+        badge,
+        verificationStatus
+      })
       .returning();
     return profile;
   }
@@ -672,10 +690,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getDonorsByBloodType(bloodType: string): Promise<(User & { donorProfile: DonorProfile })[]> {
+    // Ensure bloodType is one of the valid enum values
+    const validBloodType = bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+    
     const result = await db
       .select()
       .from(users)
-      .where(and(eq(users.role, 'donor'), eq(users.bloodType, bloodType)))
+      .where(and(eq(users.role, 'donor'), eq(users.bloodType, validBloodType)))
       .leftJoin(donorProfiles, eq(users.id, donorProfiles.userId));
       
     return result.map(({ users, donor_profiles }) => ({
@@ -733,12 +754,14 @@ export class DatabaseStorage implements IStorage {
   // ============= Emergency Request Methods =============
   
   async createEmergencyRequest(requestData: InsertEmergencyRequest): Promise<EmergencyRequest> {
+    // Handle bloodType separately to ensure type safety
+    const bloodType = requestData.bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+    
     const [request] = await db
       .insert(emergencyRequests)
       .values({
         ...requestData,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        bloodType
       })
       .returning();
     return request;
@@ -789,9 +812,15 @@ export class DatabaseStorage implements IStorage {
   // ============= Donation Record Methods =============
   
   async createDonationRecord(recordData: InsertDonationRecord): Promise<DonationRecord> {
+    // Handle bloodType separately to ensure type safety
+    const bloodType = recordData.bloodType as "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+    
     const [record] = await db
       .insert(donationRecords)
-      .values(recordData)
+      .values({
+        ...recordData,
+        bloodType
+      })
       .returning();
     return record;
   }
