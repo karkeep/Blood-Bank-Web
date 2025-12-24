@@ -1,0 +1,123 @@
+/* COMPREHENSIVE BUBBLE/DOT FIX - Remove any floating decorative elements */
+
+/* Remove all potential bubble/dot decorations */
+.bubble,
+.red-bubble,
+.green-bubble,
+.floating-bubble,
+.decoration-bubble,
+.animated-bubble,
+.background-bubble,
+.hero-bubble,
+.floating-element,
+.decoration-circle,
+.background-circle,
+.decorative-element,
+.decorative-dot,
+.hero-dot,
+.floating-dot {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Remove any decorative dots/circles from hero sections */
+section [class*="absolute"][class*="rounded-full"],
+.hero-section [class*="absolute"][class*="rounded-full"],
+[class*="bg-gradient"] [class*="absolute"][class*="rounded-full"],
+[class*="bg-red"] [class*="absolute"][class*="rounded-full"],
+[class*="relative"] [class*="absolute"][class*="rounded-full"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Remove positioned decorative circles */
+[class*="top-"][class*="right-"][class*="rounded-full"],
+[class*="top-"][class*="left-"][class*="rounded-full"],
+[class*="bottom-"][class*="right-"][class*="rounded-full"],
+[class*="bottom-"][class*="left-"][class*="rounded-full"] {
+  display: none !important;
+}
+
+/* Remove common sized decorative circles */
+.w-4.h-4.rounded-full.absolute,
+.w-6.h-6.rounded-full.absolute,
+.w-8.h-8.rounded-full.absolute,
+.w-10.h-10.rounded-full.absolute,
+.w-12.h-12.rounded-full.absolute {
+  display: none !important;
+}
+
+/* Remove border-only circles */
+.border-2.rounded-full.absolute,
+.border-4.rounded-full.absolute,
+.border.rounded-full.absolute {
+  display: none !important;
+}
+
+/* Remove any pseudo-elements that might create bubbles */
+*::before,
+*::after {
+  content: none !important;
+}
+
+/* Ensure specific sections don't have floating decorations */
+.hero-section::before,
+.hero-section::after,
+.main-content::before,
+.main-content::after,
+.container::before,
+.container::after {
+  display: none !important;
+  content: none !important;
+}
+/* Remove any background animations that might create floating elements */
+@keyframes float,
+@keyframes bubble,
+@keyframes bounce,
+@keyframes floating,
+@keyframes slide,
+@keyframes glow {
+  from, to {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Remove transform animations on decorative elements */
+.floating,
+.bouncing,
+.animated,
+.slide-in,
+.fade-in {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Enhanced Learn More Button Styles */
+.enhanced-learn-more {
+  background: transparent !important;
+  color: white !important;
+  border: 3px solid white !important;
+  padding: 12px 32px !important;
+  border-radius: 8px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.2) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  min-width: 200px !important;
+}
+
+.enhanced-learn-more:hover {
+  background: white !important;
+  color: #dc2626 !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 12px 20px rgba(255, 255, 255, 0.4) !important;
+  border-color: white !important;
+}

@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
+import { setupFirebaseAuth } from "./firebase-auth";
 import { storage } from "./storage";
 import multer from "multer";
 import { z } from "zod";
@@ -10,6 +11,8 @@ import {
   insertEmergencyRequestSchema,
   insertDocumentSchema
 } from "@shared/schema";
+import rolesRoutes from "./routes/roles";
+import bloodBankRoutes from "./routes/bloodbank";
 
 // Configure storage for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -43,8 +46,15 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication routes
+  // Set up authentication routes - both traditional and Firebase
   setupAuth(app);
+  setupFirebaseAuth(app);
+  
+  // Register role management routes
+  app.use('/api/roles', rolesRoutes);
+  
+  // Register blood bank routes
+  app.use('/api/bloodbanks', bloodBankRoutes);
 
   // Middleware to check if user is authenticated
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
@@ -155,7 +165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'critical': 3,
         'urgent': 12,
         'standard': 24
-      }[req.body.urgencyLevel] || 12;
+      }[req.body.urgencyLevel as 'critical' | 'urgent' | 'standard'] || 12;
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + expiresAtHours);
@@ -237,12 +247,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/donors", async (req, res) => {
     try {
       const bloodType = req.query.bloodType as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const searchQuery = req.query.search as string;
+      
       let donors;
       
-      if (bloodType) {
+      if (bloodType && bloodType !== 'all') {
         donors = await storage.getDonorsByBloodType(bloodType);
       } else {
         donors = await storage.getAllDonors();
+      }
+      
+      // Apply search filter if provided (simplified implementation)
+      if (searchQuery) {
+        // This is just a simple example - in a real app you'd use a proper search
+        donors = donors.filter(donor => 
+          donor.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          donor.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      // Apply limit if specified
+      if (limit && limit > 0 && limit < donors.length) {
+        donors = donors.slice(0, limit);
       }
       
       // Remove sensitive information for public API
@@ -251,13 +278,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           ...userWithoutPassword,
           email: undefined, // Don't expose email to public
-          phoneNumber: undefined // Don't expose phone to public
+          phoneNumber: undefined, // Don't expose phone to public
+          // But keep the location data we added
+          latitude: donor.latitude,
+          longitude: donor.longitude,
+          distance: donor.distance,
+          status: donor.status || 'Available'
         };
       });
       
       res.json(sanitizedDonors);
     } catch (error) {
-      res.status(500).json({ message: "Server error" });
+      console.error("Error fetching donors:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
     }
   });
 

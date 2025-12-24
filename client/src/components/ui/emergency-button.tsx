@@ -12,7 +12,7 @@ export function EmergencyButton({ className, fixed = true }: EmergencyButtonProp
   const [, setLocation] = useLocation();
   
   const handleClick = () => {
-    setLocation('/emergency');
+    setLocation('/emergency-request');
   };
   
   return (

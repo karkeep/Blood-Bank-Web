@@ -1,164 +1,160 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, varchar, unique } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { z } from 'zod';
 
-// Enum types as string literals
-const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
-const userRoles = ['donor', 'requester', 'admin'] as const;
-const donorBadges = ['Bronze', 'Silver', 'Gold'] as const;
-const donorStatuses = ['Available', 'Unavailable', 'Pending'] as const;
-const verificationStatuses = ['Unverified', 'Pending', 'Verified'] as const;
-const requestStatuses = ['Pending', 'Matching', 'Donor Found', 'Fulfilled', 'Cancelled'] as const;
-const urgencyLevels = ['Standard', 'Urgent', 'Critical'] as const;
+export type User = {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  bloodType: string;
+  role: 'superadmin' | 'admin' | 'moderator' | 'volunteer' | 'donor' | 'user';
+  firebaseUid?: string;
+  fullName?: string;
+  isAdmin?: boolean;
+  createdBy?: number; // ID of the user who created this account
+  status?: 'active' | 'suspended' | 'banned'; // User account status
+  suspension?: {
+    until?: Date;
+    reason?: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-// Users table
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  fullName: text("full_name"),
-  phoneNumber: text("phone_number"),
-  bloodType: text("blood_type").notNull().$type<typeof bloodTypes[number]>(),
-  role: text("role").notNull().default('donor').$type<typeof userRoles[number]>(),
-  isAdmin: boolean("is_admin").notNull().default(false),
-  location: jsonb("location"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+export type DonorProfile = {
+  id: number;
+  userId: number;
+  status: string;
+  badge: string;
+  totalDonations: number;
+  litersDonated: number;
+  livesSaved: number;
+  verificationStatus: string;
+  lastDonationDate?: Date;
+  nextEligibleDate?: Date;
+};
+
+export type EmergencyRequest = {
+  id: number;
+  requesterId: number | null;
+  contactName: string;
+  bloodType: string;
+  urgencyLevel: string;
+  contactPhone: string;
+  contactEmail?: string;
+  hospitalName?: string;
+  details?: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  };
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DonationRecord = {
+  id: number;
+  donorId: number;
+  bloodType: string;
+  donationDate: string;
+  volume: number;
+  location: string;
+  donationCenter: string;
+};
+
+export type Document = {
+  id: number;
+  userId: number;
+  type: string;
+  fileName: string;
+  filePath: string;
+  verificationStatus: string;
+  notes: string | null;
+  uploadedAt: string;
+  verifiedAt: string | null;
+};
+
+// Deletion request type
+export type DeletionRequest = {
+  id: number;
+  requesterId: number;
+  targetUserId: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  resolvedAt?: Date;
+};
+
+export type BloodBank = {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  phone: string;
+  email?: string;
+  website?: string;
+  latitude: number;
+  longitude: number;
+  status: 'active' | 'inactive';
+  inventoryLevels?: {
+    'A+': number;
+    'A-': number;
+    'B+': number;
+    'B-': number;
+    'AB+': number;
+    'AB-': number;
+    'O+': number;
+    'O-': number;
+  };
+  createdBy: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// Adding placeholder types for database schema objects
+export const users = {};
+export const donorProfiles = {};
+export const emergencyRequests = {};
+export const donationRecords = {};
+export const documents = {};
+export const deletionRequests = {};
+export const bloodBanks = {};
+
+// Adding placeholder insertion types
+export type InsertUser = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertDonorProfile = Omit<DonorProfile, 'id'>;
+export type InsertEmergencyRequest = Omit<EmergencyRequest, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertDonationRecord = Omit<DonationRecord, 'id'>;
+export type InsertDocument = Omit<Document, 'id' | 'uploadedAt' | 'verifiedAt'>;
+export type InsertDeletionRequest = Omit<DeletionRequest, 'id' | 'resolvedAt'>;
+export type InsertBloodBank = Omit<BloodBank, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Zod schemas for validation
+export const insertEmergencyRequestSchema = z.object({
+  requesterId: z.number().nullable(),
+  contactName: z.string().min(1, "Contact name is required"),
+  bloodType: z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]),
+  urgencyLevel: z.enum(["critical", "urgent", "standard"]),
+  contactPhone: z.string().min(10, "Valid phone number is required"),
+  contactEmail: z.string().email().optional(),
+  hospitalName: z.string().optional(),
+  details: z.string().optional(),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    address: z.string().optional()
+  }),
+  status: z.enum(["Pending", "Matching", "Fulfilled", "Expired", "Cancelled"]).default("Pending"),
+  expiresAt: z.date()
 });
 
-// Donor profiles table
-export const donorProfiles = pgTable("donor_profiles", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  status: text("status").notNull().default('Pending').$type<typeof donorStatuses[number]>(),
-  badge: text("badge").notNull().default('Bronze').$type<typeof donorBadges[number]>(),
-  totalDonations: integer("total_donations").notNull().default(0),
-  litersDonated: integer("liters_donated").notNull().default(0),
-  livesSaved: integer("lives_saved").notNull().default(0),
-  lastDonationDate: timestamp("last_donation_date"),
-  nextEligibleDate: timestamp("next_eligible_date"),
-  medicalInfo: jsonb("medical_info"),
-  verificationStatus: text("verification_status").notNull().default('Unverified').$type<typeof verificationStatuses[number]>(),
-  documents: jsonb("documents"),
-}, (table) => {
-  return {
-    userIdx: unique().on(table.userId),
-  }
+export const insertDocumentSchema = z.object({
+  userId: z.number(),
+  type: z.enum(["ID", "MedicalReport", "DonorCard", "AddressProof", "Other"]),
+  fileName: z.string(),
+  filePath: z.string(),
+  verificationStatus: z.enum(["Pending", "Verified", "Rejected"]).default("Pending"),
+  notes: z.string().nullable().optional()
 });
-
-// Emergency requests table
-export const emergencyRequests = pgTable("emergency_requests", {
-  id: serial("id").primaryKey(),
-  requesterId: integer("requester_id").notNull().references(() => users.id),
-  patientName: text("patient_name").notNull(),
-  contactName: text("contact_name").notNull(),
-  contactPhone: text("contact_phone").notNull(),
-  bloodType: text("blood_type").notNull().$type<typeof bloodTypes[number]>(),
-  unitsNeeded: integer("units_needed").notNull().default(1),
-  hospitalName: text("hospital_name").notNull(),
-  hospitalAddress: text("hospital_address").notNull(),
-  location: jsonb("location").notNull(),
-  urgencyLevel: text("urgency_level").notNull().default('Urgent').$type<typeof urgencyLevels[number]>(),
-  medicalReason: text("medical_reason").notNull(),
-  status: text("status").notNull().default('Pending').$type<typeof requestStatuses[number]>(),
-  matchedDonorIds: jsonb("matched_donor_ids"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-});
-
-// Donation records table
-export const donationRecords = pgTable("donation_records", {
-  id: serial("id").primaryKey(),
-  donorId: integer("donor_id").notNull().references(() => users.id),
-  requestId: integer("request_id").references(() => emergencyRequests.id),
-  bloodType: text("blood_type").notNull().$type<typeof bloodTypes[number]>(),
-  volume: integer("volume").notNull(), // in ml
-  donationDate: timestamp("donation_date").notNull().defaultNow(),
-  hospitalName: text("hospital_name").notNull(),
-  hospitalAddress: text("hospital_address"),
-  isEmergency: boolean("is_emergency").notNull().default(false),
-  recipientNote: text("recipient_note"),
-});
-
-// Documents table for KYC
-export const documents = pgTable("documents", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  type: varchar("type", { length: 50 }).notNull(),
-  fileName: text("file_name").notNull(),
-  filePath: text("file_path").notNull(),
-  verificationStatus: text("verification_status").notNull().default('Pending').$type<typeof verificationStatuses[number]>(),
-  notes: text("notes"),
-  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
-  verifiedAt: timestamp("verified_at"),
-});
-
-// Zod schemas for data validation
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertDonorProfileSchema = createInsertSchema(donorProfiles).omit({ id: true });
-export const insertEmergencyRequestSchema = createInsertSchema(emergencyRequests).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertDonationRecordSchema = createInsertSchema(donationRecords).omit({ id: true });
-export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, uploadedAt: true, verifiedAt: true });
-
-// Define common types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-export type InsertDonorProfile = z.infer<typeof insertDonorProfileSchema>;
-export type DonorProfile = typeof donorProfiles.$inferSelect;
-
-export type InsertEmergencyRequest = z.infer<typeof insertEmergencyRequestSchema>;
-export type EmergencyRequest = typeof emergencyRequests.$inferSelect;
-
-export type InsertDonationRecord = z.infer<typeof insertDonationRecordSchema>;
-export type DonationRecord = typeof donationRecords.$inferSelect;
-
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
-export type Document = typeof documents.$inferSelect;
-
-// Define relations between tables
-export const usersRelations = relations(users, ({ one, many }) => ({
-  donorProfile: one(donorProfiles, {
-    fields: [users.id],
-    references: [donorProfiles.userId],
-  }),
-  emergencyRequests: many(emergencyRequests),
-  donationRecords: many(donationRecords),
-  documents: many(documents),
-}));
-
-export const donorProfilesRelations = relations(donorProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [donorProfiles.userId],
-    references: [users.id],
-  }),
-}));
-
-export const emergencyRequestsRelations = relations(emergencyRequests, ({ one, many }) => ({
-  requester: one(users, {
-    fields: [emergencyRequests.requesterId],
-    references: [users.id],
-  }),
-  donationRecords: many(donationRecords),
-}));
-
-export const donationRecordsRelations = relations(donationRecords, ({ one }) => ({
-  donor: one(users, {
-    fields: [donationRecords.donorId],
-    references: [users.id],
-  }),
-  request: one(emergencyRequests, {
-    fields: [donationRecords.requestId],
-    references: [emergencyRequests.id],
-  }),
-}));
-
-export const documentsRelations = relations(documents, ({ one }) => ({
-  user: one(users, {
-    fields: [documents.userId],
-    references: [users.id],
-  }),
-}));

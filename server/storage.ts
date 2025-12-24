@@ -9,17 +9,27 @@ import {
   InsertDonationRecord,
   Document,
   InsertDocument,
+  DeletionRequest,
+  BloodBank,
+  InsertBloodBank,
   users,
   donorProfiles,
   emergencyRequests,
   donationRecords,
-  documents
+  documents,
+  deletionRequests,
+  bloodBanks
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db } from "./db";
 import { pool } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
+import createMemoryStore from "memorystore";
+import { FirebaseDatabase } from './firebase/database';
+
+// Create a memory store factory
+const MemoryStore = createMemoryStore(session);
 
 // Define types for mock data
 type RecentActivity = {
@@ -65,9 +75,25 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByFirebaseUid(uid: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  getUsers(options?: { role?: string; excludeRoles?: string[]; onlyRoles?: string[]; page?: number; limit?: number }): Promise<User[]>;
+  deleteUser(id: number): Promise<void>;
+  
+  // BloodBank Methods
+  createBloodBank(bloodBank: InsertBloodBank): Promise<BloodBank>;
+  getBloodBankById(id: number): Promise<BloodBank | undefined>;
+  getAllBloodBanks(): Promise<BloodBank[]>;
+  updateBloodBank(id: number, bloodBankData: Partial<BloodBank>): Promise<BloodBank>;
+  deleteBloodBank(id: number): Promise<void>;
+  
+  // Deletion Request Methods
+  createDeletionRequest(request: { requesterId: number; targetUserId: number; reason: string; status: string; createdAt: Date }): Promise<DeletionRequest>;
+  getDeletionRequest(id: number): Promise<DeletionRequest>;
+  getDeletionRequests(options?: { status?: string; page?: number; limit?: number; includeRequester?: boolean; includeTargetUser?: boolean }): Promise<any[]>;
+  updateDeletionRequest(id: number, data: Partial<DeletionRequest>): Promise<DeletionRequest>;
   
   // Donor Profile Methods
   getDonorProfileByUserId(userId: number): Promise<DonorProfile | undefined>;
@@ -115,6 +141,8 @@ export class MemStorage implements IStorage {
   private emergencyRequests: Map<number, EmergencyRequest>;
   private donationRecords: Map<number, DonationRecord>;
   private documents: Map<number, Document>;
+  private deletionRequests: Map<number, DeletionRequest>;
+  private bloodBanks: Map<number, BloodBank>;
   
   // Auto-increment IDs
   private userIdCounter: number;
@@ -122,6 +150,8 @@ export class MemStorage implements IStorage {
   private requestIdCounter: number;
   private donationIdCounter: number;
   private documentIdCounter: number;
+  private deletionRequestIdCounter: number;
+  private bloodBankIdCounter: number;
   
   sessionStore: session.Store;
 
@@ -131,28 +161,26 @@ export class MemStorage implements IStorage {
     this.emergencyRequests = new Map();
     this.donationRecords = new Map();
     this.documents = new Map();
+    this.deletionRequests = new Map();
+    this.bloodBanks = new Map();
     
     this.userIdCounter = 1;
     this.donorProfileIdCounter = 1;
     this.requestIdCounter = 1;
     this.donationIdCounter = 1;
     this.documentIdCounter = 1;
+    this.deletionRequestIdCounter = 1;
+    this.bloodBankIdCounter = 1;
     
-    // Use a simple object to implement session.Store for in-memory storage
-    this.sessionStore = {
-      all: (callback: (err: any, obj?: { [sid: string]: session.SessionData } | null) => void) => { callback(null, {}); },
-      destroy: (sid: string, callback?: (err?: any) => void) => { if (callback) callback(); },
-      clear: (callback?: (err?: any) => void) => { if (callback) callback(); },
-      length: (callback: (err: any, length?: number) => void) => { callback(null, 0); },
-      get: (sid: string, callback: (err: any, session?: session.SessionData | null) => void) => { callback(null, null); },
-      set: (sid: string, session: session.SessionData, callback?: (err?: any) => void) => { if (callback) callback(); },
-      touch: (sid: string, session: session.SessionData, callback?: (err?: any) => void) => { if (callback) callback(); }
-    } as session.Store;
+    // Use MemoryStore for session storage
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
     
     // Create an admin user
     this.createUser({
       username: "admin",
-      email: "admin@lifelink.org",
+      email: "admin@jiwandan.com",
       password: "$2a$10$XbGSGZUBn9hC8VsVtU5KxebkR9uHTNXKSVFTKLxvhRZwFTdYJ6MK2", // "password"
       bloodType: "O+",
       role: "admin",
@@ -175,6 +203,12 @@ export class MemStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.email.toLowerCase() === email.toLowerCase()
+    );
+  }
+  
+  async getUserByFirebaseUid(uid: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.firebaseUid === uid
     );
   }
 
@@ -212,6 +246,58 @@ export class MemStorage implements IStorage {
   
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+  
+  async getUsers(options?: { role?: string; excludeRoles?: string[]; onlyRoles?: string[]; page?: number; limit?: number }): Promise<User[]> {
+    let users = Array.from(this.users.values());
+    
+    // Apply role filter if specified
+    if (options?.role) {
+      users = users.filter(user => user.role === options.role);
+    }
+    
+    // Apply excludeRoles filter if specified
+    if (options?.excludeRoles?.length) {
+      users = users.filter(user => !options.excludeRoles!.includes(user.role));
+    }
+    
+    // Apply onlyRoles filter if specified
+    if (options?.onlyRoles?.length) {
+      users = users.filter(user => options.onlyRoles!.includes(user.role));
+    }
+    
+    // Apply pagination
+    if (options?.page && options?.limit) {
+      const startIndex = (options.page - 1) * options.limit;
+      const endIndex = startIndex + options.limit;
+      users = users.slice(startIndex, endIndex);
+    }
+    
+    return users;
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    const exists = this.users.has(id);
+    if (!exists) {
+      throw new Error("User not found");
+    }
+    
+    // Delete user
+    this.users.delete(id);
+    
+    // Delete associated data
+    // (donor profile, documents, etc.)
+    const profileId = Array.from(this.donorProfiles.values())
+      .find(profile => profile.userId === id)?.id;
+      
+    if (profileId) {
+      this.donorProfiles.delete(profileId);
+    }
+    
+    // Delete documents
+    Array.from(this.documents.values())
+      .filter(doc => doc.userId === id)
+      .forEach(doc => this.documents.delete(doc.id));
   }
 
   // ============= Donor Profile Methods =============
@@ -563,10 +649,17 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true 
-    });
+    // Use memorystore for sessionStore in development mode
+    if (process.env.NODE_ENV === 'development') {
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      });
+    } else {
+      this.sessionStore = new PostgresSessionStore({ 
+        pool, 
+        createTableIfMissing: true 
+      });
+    }
   }
 
   // ============= User Methods =============
@@ -589,6 +682,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(users)
       .where(eq(users.email, email));
+    return user;
+  }
+  
+  async getUserByFirebaseUid(uid: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.firebaseUid, uid));
     return user;
   }
 
@@ -625,8 +726,145 @@ export class DatabaseStorage implements IStorage {
     return updatedUser;
   }
   
-  async getAllUsers(): Promise<User[]> {
-    return db.select().from(users);
+  async getUsers(options?: { role?: string; excludeRoles?: string[]; onlyRoles?: string[]; page?: number; limit?: number }): Promise<User[]> {
+    // Start with a base query
+    let query = db.select().from(users);
+    
+    // Apply role filter if specified
+    if (options?.role) {
+      query = query.where(eq(users.role, options.role));
+    }
+    
+    // Apply excludeRoles filter if specified
+    if (options?.excludeRoles?.length) {
+      for (const role of options.excludeRoles) {
+        query = query.where(sql`${users.role} != ${role}`);
+      }
+    }
+    
+    // Apply onlyRoles filter if specified
+    if (options?.onlyRoles?.length) {
+      query = query.where(sql`${users.role} IN (${options.onlyRoles.join(',')})`);
+    }
+    
+    // Apply pagination
+    if (options?.page && options?.limit) {
+      const offset = (options.page - 1) * options.limit;
+      query = query.limit(options.limit).offset(offset);
+    }
+    
+    // Execute query
+    return query;
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    const user = await this.getUser(id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // First delete associated records
+    
+    // Delete donor profile if exists
+    const profile = await this.getDonorProfileByUserId(id);
+    if (profile) {
+      await db.delete(donorProfiles).where(eq(donorProfiles.userId, id));
+    }
+    
+    // Delete documents
+    await db.delete(documents).where(eq(documents.userId, id));
+    
+    // Delete the user
+    await db.delete(users).where(eq(users.id, id));
+  }
+  
+  async createDeletionRequest(request: { requesterId: number; targetUserId: number; reason: string; status: string; createdAt: Date }): Promise<DeletionRequest> {
+    const [deletionRequest] = await db
+      .insert(deletionRequests)
+      .values({
+        requesterId: request.requesterId,
+        targetUserId: request.targetUserId,
+        reason: request.reason,
+        status: request.status as 'pending' | 'approved' | 'rejected',
+        createdAt: request.createdAt
+      })
+      .returning();
+      
+    return deletionRequest;
+  }
+  
+  async getDeletionRequest(id: number): Promise<DeletionRequest> {
+    const [request] = await db
+      .select()
+      .from(deletionRequests)
+      .where(eq(deletionRequests.id, id));
+      
+    if (!request) {
+      throw new Error("Deletion request not found");
+    }
+    
+    return request;
+  }
+  
+  async getDeletionRequests(options?: { status?: string; page?: number; limit?: number; includeRequester?: boolean; includeTargetUser?: boolean }): Promise<any[]> {
+    // Get base deletion requests
+    let query = db.select().from(deletionRequests);
+    
+    // Apply status filter
+    if (options?.status) {
+      query = query.where(eq(deletionRequests.status, options.status as 'pending' | 'approved' | 'rejected'));
+    }
+    
+    // Apply pagination
+    if (options?.page && options?.limit) {
+      const offset = (options.page - 1) * options.limit;
+      query = query.limit(options.limit).offset(offset);
+    }
+    
+    const requests = await query;
+    
+    // Include requester and target user if requested
+    if (options?.includeRequester || options?.includeTargetUser) {
+      const result = await Promise.all(requests.map(async (req) => {
+        const enrichedRequest: any = { ...req };
+        
+        if (options.includeRequester) {
+          const requester = await this.getUser(req.requesterId);
+          if (requester) {
+            const { password, ...requesterWithoutPassword } = requester;
+            enrichedRequest.requester = requesterWithoutPassword;
+          }
+        }
+        
+        if (options.includeTargetUser) {
+          const targetUser = await this.getUser(req.targetUserId);
+          if (targetUser) {
+            const { password, ...targetUserWithoutPassword } = targetUser;
+            enrichedRequest.targetUser = targetUserWithoutPassword;
+          }
+        }
+        
+        return enrichedRequest;
+      }));
+      
+      return result;
+    }
+    
+    return requests;
+  }
+  
+  async updateDeletionRequest(id: number, data: Partial<DeletionRequest>): Promise<DeletionRequest> {
+    const [updatedRequest] = await db
+      .update(deletionRequests)
+      .set(data)
+      .where(eq(deletionRequests.id, id))
+      .returning();
+      
+    if (!updatedRequest) {
+      throw new Error("Deletion request not found");
+    }
+    
+    return updatedRequest;
   }
 
   // ============= Donor Profile Methods =============
@@ -683,10 +921,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.role, 'donor'))
       .leftJoin(donorProfiles, eq(users.id, donorProfiles.userId));
       
-    return result.map(({ users, donor_profiles }) => ({
-      ...users,
-      donorProfile: donor_profiles as DonorProfile
-    })).filter(donor => donor.donorProfile !== null);
+    // Add mock location data for demonstration purposes
+    const enrichedResult = result.map(({ users, donor_profiles }, index) => {
+      // Generate random locations around Kathmandu for demo
+      const latBase = 27.7172;
+      const lngBase = 85.3240;
+      
+      const latitude = latBase + (Math.random() - 0.5) * 0.05;
+      const longitude = lngBase + (Math.random() - 0.5) * 0.05;
+      const distance = Math.round((Math.random() * 10) * 10) / 10; // 0-10 km, 1 decimal
+      
+      return {
+        ...users,
+        latitude,
+        longitude,
+        distance,
+        status: Math.random() > 0.3 ? 'Available' : 'Unavailable',
+        donorProfile: donor_profiles as DonorProfile
+      };
+    });
+      
+    return enrichedResult.filter(donor => donor.donorProfile !== null);
   }
   
   async getDonorsByBloodType(bloodType: string): Promise<(User & { donorProfile: DonorProfile })[]> {
@@ -699,10 +954,27 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(users.role, 'donor'), eq(users.bloodType, validBloodType)))
       .leftJoin(donorProfiles, eq(users.id, donorProfiles.userId));
       
-    return result.map(({ users, donor_profiles }) => ({
-      ...users,
-      donorProfile: donor_profiles as DonorProfile
-    })).filter(donor => donor.donorProfile !== null);
+    // Add mock location data for demonstration purposes
+    const enrichedResult = result.map(({ users, donor_profiles }, index) => {
+      // Generate random locations around Kathmandu for demo
+      const latBase = 27.7172;
+      const lngBase = 85.3240;
+      
+      const latitude = latBase + (Math.random() - 0.5) * 0.05;
+      const longitude = lngBase + (Math.random() - 0.5) * 0.05;
+      const distance = Math.round((Math.random() * 10) * 10) / 10; // 0-10 km, 1 decimal
+      
+      return {
+        ...users,
+        latitude,
+        longitude,
+        distance,
+        status: Math.random() > 0.3 ? 'Available' : 'Unavailable',
+        donorProfile: donor_profiles as DonorProfile
+      };
+    });
+      
+    return enrichedResult.filter(donor => donor.donorProfile !== null);
   }
   
   async getTopDonors(limit: number = 3): Promise<(User & { donorProfile: DonorProfile })[]> {
@@ -1021,5 +1293,13 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Initialize with database storage
-export const storage = new DatabaseStorage();
+// Import Firebase database implementation
+import { FirebaseDatabase } from './firebase/database';
+
+// Use Firebase instead of PostgreSQL in production, or when Firebase is explicitly enabled
+const useFirebase = process.env.USE_FIREBASE === 'true' || process.env.NODE_ENV === 'production';
+
+// Initialize with the appropriate storage implementation
+export const storage = useFirebase 
+  ? new FirebaseDatabase() 
+  : new DatabaseStorage();

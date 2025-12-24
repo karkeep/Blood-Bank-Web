@@ -1,0 +1,27 @@
+<style>
+/* FINAL DOT REMOVAL - Nuclear option to remove ALL decorative dots */
+section *[class*="absolute"][class*="rounded-full"]:not([role]):not([aria-label]):not([data-keep]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Remove any background decorative elements */
+.hero-section::before,
+.hero-section::after,
+section::before,
+section::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Remove positioned circles by size */
+[class*="w-"][class*="h-"][class*="rounded-full"][class*="absolute"]:not([role]):not([aria-label]) {
+  display: none !important;
+}
+
+/* Remove border circles */
+[class*="border"][class*="rounded-full"][class*="absolute"]:not([role]):not([aria-label]) {
+  display: none !important;
+}
+</style>

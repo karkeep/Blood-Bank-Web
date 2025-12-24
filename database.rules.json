@@ -1,0 +1,266 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    
+    "users": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Allow a user to write only to their own user record
+      "$userId": {
+        ".write": "auth != null && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'superadmin')",
+        
+        // Validate user data
+        ".validate": "newData.hasChildren(['username', 'email', 'bloodType', 'role', 'firebaseUid'])",
+        
+        "username": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$/)"
+        },
+        "bloodType": {
+          ".validate": "newData.isString() && newData.val().matches(/^(A|B|AB|O)[+-]$/)"
+        },
+        "role": {
+          ".validate": "newData.isString() && (newData.val() === 'superadmin' || newData.val() === 'admin' || newData.val() === 'moderator' || newData.val() === 'volunteer' || newData.val() === 'donor' || newData.val() === 'user')"
+        },
+        "isAdmin": {
+          ".validate": "newData.isBoolean()"
+        },
+        "firebaseUid": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "location": {
+          ".validate": "!newData.exists() || newData.hasChildren(['latitude', 'longitude'])",
+          
+          "latitude": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "longitude": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          }
+        }
+      }
+    },
+    
+    "donorProfiles": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Allow a user to write only to their own donor profile
+      "$profileId": {
+        ".write": "auth != null && (auth.uid === root.child('users').child(newData.child('userId').val()).child('uid').val() || root.child('users').child(data.child('userId').val()).child('isAdmin').val() === true)",
+        
+        // Validate donor profile data
+        ".validate": "newData.hasChildren(['userId', 'status', 'badge', 'totalDonations', 'litersDonated', 'livesSaved', 'verificationStatus'])",
+        
+        "userId": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'Pending' || newData.val() === 'Available' || newData.val() === 'Unavailable')"
+        },
+        "badge": {
+          ".validate": "newData.isString() && (newData.val() === 'Bronze' || newData.val() === 'Silver' || newData.val() === 'Gold')"
+        },
+        "totalDonations": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "litersDonated": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "livesSaved": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "verificationStatus": {
+          ".validate": "newData.isString() && (newData.val() === 'Unverified' || newData.val() === 'Pending' || newData.val() === 'Verified')"
+        },
+        "latitude": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= -90 && newData.val() <= 90)"
+        },
+        "longitude": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= -180 && newData.val() <= 180)"
+        }
+      }
+    },
+    
+    "emergencyRequests": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Allow any authenticated user to create an emergency request
+      ".write": "auth != null",
+      
+      // Validate emergency request data
+      "$requestId": {
+        ".validate": "newData.hasChildren(['requesterId', 'patientName', 'bloodType', 'unitsNeeded', 'urgency', 'hospitalName', 'hospitalAddress', 'hospitalCity', 'hospitalState', 'latitude', 'longitude', 'contactName', 'contactPhone', 'contactRelation', 'status', 'createdAt', 'updatedAt', 'expiresAt'])",
+        
+        "requesterId": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "bloodType": {
+          ".validate": "newData.isString() && newData.val().matches(/^(A|B|AB|O)[+-]$/)"
+        },
+        "unitsNeeded": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "urgency": {
+          ".validate": "newData.isString() && (newData.val() === 'Normal' || newData.val() === 'Urgent' || newData.val() === 'Critical')"
+        },
+        "latitude": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "longitude": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'Pending' || newData.val() === 'Matching' || newData.val() === 'Fulfilled' || newData.val() === 'Cancelled' || newData.val() === 'Expired')"
+        }
+      }
+    },
+    
+    "donationRecords": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Allow a user to create their own donation record
+      ".write": "auth != null && (auth.uid === root.child('users').child(newData.child('donorId').val()).child('uid').val() || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+      
+      // Validate donation record data
+      "$recordId": {
+        ".validate": "newData.hasChildren(['donorId', 'bloodType', 'donationDate', 'volume', 'location', 'donationType', 'status'])",
+        
+        "donorId": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "bloodType": {
+          ".validate": "newData.isString() && newData.val().matches(/^(A|B|AB|O)[+-]$/)"
+        },
+        "donationDate": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "volume": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "donationType": {
+          ".validate": "newData.isString() && (newData.val() === 'Regular' || newData.val() === 'Emergency' || newData.val() === 'Apheresis')"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'Scheduled' || newData.val() === 'Completed' || newData.val() === 'Cancelled')"
+        }
+      }
+    },
+    
+    "documents": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Allow a user to create their own documents
+      ".write": "auth != null && (auth.uid === root.child('users').child(newData.child('userId').val()).child('uid').val() || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+      
+      // Validate document data
+      "$documentId": {
+        ".validate": "newData.hasChildren(['userId', 'documentType', 'documentName', 'fileUrl', 'fileType', 'verificationStatus', 'uploadedAt'])",
+        
+        "userId": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "documentType": {
+          ".validate": "newData.isString() && (newData.val() === 'ID' || newData.val() === 'MedicalRecord' || newData.val() === 'BloodTest' || newData.val() === 'Other')"
+        },
+        "fileUrl": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "verificationStatus": {
+          ".validate": "newData.isString() && (newData.val() === 'Unverified' || newData.val() === 'Pending' || newData.val() === 'Verified')"
+        },
+        "uploadedAt": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        }
+      }
+    },
+    
+    "notifications": {
+      // Allow read access to notifications for their recipient
+      ".read": "auth != null",
+      
+      // Allow write access to create notifications
+      ".write": "auth != null",
+      
+      // Validate notification data
+      "$notificationId": {
+        ".validate": "newData.hasChildren(['userId', 'title', 'message', 'type', 'read', 'createdAt'])",
+        
+        "userId": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "title": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "type": {
+          ".validate": "newData.isString() && (newData.val() === 'EmergencyRequest' || newData.val() === 'RequestMatch' || newData.val() === 'DonationReminder' || newData.val() === 'Verification' || newData.val() === 'System')"
+        },
+        "read": {
+          ".validate": "newData.isBoolean()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        }
+      }
+    },
+    
+    "bloodInventory": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Only admins can update blood inventory
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      // Validate blood inventory data
+      "$inventoryId": {
+        ".validate": "newData.hasChildren(['cityId', 'cityName', 'bloodType', 'unitsAvailable', 'status', 'lastUpdated'])",
+        
+        "bloodType": {
+          ".validate": "newData.isString() && newData.val().matches(/^(A|B|AB|O)[+-]$/)"
+        },
+        "unitsAvailable": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'Critical' || newData.val() === 'Low' || newData.val() === 'Adequate' || newData.val() === 'Good')"
+        },
+        "lastUpdated": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        }
+      }
+    },
+    
+    "locations": {
+      // Allow read access to all authenticated users
+      ".read": "auth != null",
+      
+      // Only admins can update locations
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      
+      // Validate location data
+      "$locationId": {
+        ".validate": "newData.hasChildren(['name', 'type', 'address', 'city', 'state', 'latitude', 'longitude'])",
+        
+        "type": {
+          ".validate": "newData.isString() && (newData.val() === 'Hospital' || newData.val() === 'BloodBank' || newData.val() === 'DonationCenter')"
+        },
+        "latitude": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "longitude": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        }
+      }
+    }
+  }
+}

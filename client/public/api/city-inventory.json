@@ -1,0 +1,37 @@
+[
+  {
+    "bloodType": "O-",
+    "city": "Kathmandu",
+    "status": "Critical",
+    "percentage": 10,
+    "lastUpdated": "2023-04-28T14:30:00Z"
+  },
+  {
+    "bloodType": "A+",
+    "city": "Kathmandu",
+    "status": "Low",
+    "percentage": 30,
+    "lastUpdated": "2023-04-28T14:30:00Z"
+  },
+  {
+    "bloodType": "B+",
+    "city": "Kathmandu",
+    "status": "Low",
+    "percentage": 45,
+    "lastUpdated": "2023-04-28T14:30:00Z"
+  },
+  {
+    "bloodType": "AB+",
+    "city": "Kathmandu",
+    "status": "Adequate",
+    "percentage": 65,
+    "lastUpdated": "2023-04-28T14:30:00Z"
+  },
+  {
+    "bloodType": "O+",
+    "city": "Kathmandu",
+    "status": "Good",
+    "percentage": 85,
+    "lastUpdated": "2023-04-28T14:30:00Z"
+  }
+]

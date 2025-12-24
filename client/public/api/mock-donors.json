@@ -1,0 +1,80 @@
+[
+  { 
+    "id": 1, 
+    "username": "donor1", 
+    "bloodType": "O-", 
+    "role": "donor",
+    "latitude": 27.7172,
+    "longitude": 85.3240,
+    "distance": 1.2,
+    "status": "Available",
+    "badge": "Gold",
+    "totalDonations": 24, 
+    "verificationStatus": "Verified"
+  },
+  { 
+    "id": 2, 
+    "username": "donor2", 
+    "bloodType": "A+", 
+    "role": "donor",
+    "latitude": 27.7090,
+    "longitude": 85.3154,
+    "distance": 2.5,
+    "status": "Available",
+    "badge": "Silver",
+    "totalDonations": 18, 
+    "verificationStatus": "Verified"
+  },
+  { 
+    "id": 3, 
+    "username": "donor3", 
+    "bloodType": "B+", 
+    "role": "donor",
+    "latitude": 27.7134,
+    "longitude": 85.3102,
+    "distance": 3.1,
+    "status": "Unavailable",
+    "badge": "Bronze",
+    "totalDonations": 7, 
+    "verificationStatus": "Verified"
+  },
+  { 
+    "id": 4, 
+    "username": "donor4", 
+    "bloodType": "AB+", 
+    "role": "donor",
+    "latitude": 27.6980,
+    "longitude": 85.3215,
+    "distance": 5.4,
+    "status": "Available",
+    "badge": "Bronze",
+    "totalDonations": 5, 
+    "verificationStatus": "Pending"
+  },
+  { 
+    "id": 5, 
+    "username": "donor5", 
+    "bloodType": "O+", 
+    "role": "donor",
+    "latitude": 27.6880,
+    "longitude": 85.3401,
+    "distance": 7.2,
+    "status": "Available",
+    "badge": "Gold",
+    "totalDonations": 32, 
+    "verificationStatus": "Verified"
+  },
+  { 
+    "id": 6, 
+    "username": "donor6", 
+    "bloodType": "A-", 
+    "role": "donor",
+    "latitude": 27.7003,
+    "longitude": 85.3144,
+    "distance": 4.8,
+    "status": "Available",
+    "badge": "Silver",
+    "totalDonations": 15, 
+    "verificationStatus": "Verified"
+  }
+]

@@ -9,9 +9,9 @@ export default function EmergencyRequest() {
   return (
     <>
       <Helmet>
-        <title>Emergency Blood Request - LifeLink</title>
+        <title>Emergency Blood Request - Jiwandan</title>
         <meta name="description" content="Create an emergency blood request to find compatible donors nearby. Time-critical blood donation coordination." />
-        <meta property="og:title" content="Emergency Blood Request - LifeLink" />
+        <meta property="og:title" content="Emergency Blood Request - Jiwandan" />
         <meta property="og:description" content="Create an emergency blood request to find compatible donors near you." />
       </Helmet>
       

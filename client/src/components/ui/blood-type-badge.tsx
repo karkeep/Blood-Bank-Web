@@ -1,44 +1,63 @@
-import { cn } from "@/lib/utils";
-
-export type BloodType = 
-  | "A+" | "A-" 
-  | "B+" | "B-" 
-  | "AB+" | "AB-" 
-  | "O+" | "O-";
+import { cn } from '@/lib/utils';
 
 interface BloodTypeBadgeProps {
-  type: BloodType;
+  type: string;
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
-  size?: "sm" | "md" | "lg";
 }
 
-export function BloodTypeBadge({ type, className, size = "md" }: BloodTypeBadgeProps) {
-  // Convert blood type to CSS class format
-  const typeToClass = (type: BloodType) => {
-    const formatted = type
-      .toLowerCase()
-      .replace("+", "pos")
-      .replace("-", "neg");
-    return `blood-type-${formatted}`;
+export const BloodTypeBadge = ({
+  type,
+  size = 'md',
+  className,
+}: BloodTypeBadgeProps) => {
+  const getBackgroundColor = () => {
+    switch (type) {
+      case 'O-':
+        return 'bg-red-600 border-red-700';
+      case 'O+':
+        return 'bg-red-500 border-red-600';
+      case 'A-':
+        return 'bg-blue-600 border-blue-700';
+      case 'A+':
+        return 'bg-blue-500 border-blue-600';
+      case 'B-':
+        return 'bg-green-600 border-green-700';
+      case 'B+':
+        return 'bg-green-500 border-green-600';
+      case 'AB-':
+        return 'bg-purple-600 border-purple-700';
+      case 'AB+':
+        return 'bg-purple-500 border-purple-600';
+      default:
+        return 'bg-gray-500 border-gray-600';
+    }
   };
-  
-  // Determine size class
-  const sizeClass = {
-    sm: "w-8 h-8 text-xs",
-    md: "w-12 h-12 text-sm",
-    lg: "w-16 h-16 text-base"
-  }[size];
+
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'sm':
+        return 'h-5 w-5 text-xs';
+      case 'lg':
+        return 'h-9 w-9 text-lg';
+      case 'md':
+      default:
+        return 'h-7 w-7 text-sm';
+    }
+  };
 
   return (
-    <div 
+    <div
       className={cn(
-        "blood-type",
-        typeToClass(type),
-        sizeClass,
+        'rounded-full flex items-center justify-center font-semibold text-white border',
+        getSizeClasses(),
+        getBackgroundColor(),
         className
       )}
     >
       {type}
     </div>
   );
-}
+};
+
+export default BloodTypeBadge;

@@ -3,11 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Jiwandan - जीवनदान - Blood Donation Network</title>
+    <meta name="description" content="Jiwandan connects blood donors with those in need. Our mission is to save lives through efficient blood donation coordination." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <!-- Include Tailwind CDN for quick development -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- REMOVE ALL DECORATIVE DOTS - Highest Priority CSS -->
+    <style>
+      /* Nuclear option to remove ALL decorative dots/circles */
+      section *[class*="absolute"][class*="rounded-full"]:not([role]):not([aria-label]):not([data-functional]) {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      
+      /* Remove pseudo-element decorations */
+      .hero-section::before,
+      .hero-section::after,
+      section::before,
+      section::after {
+        display: none !important;
+        content: none !important;
+      }
+      
+      /* Remove any positioned circular decorative elements */
+      [class*="w-"][class*="h-"][class*="rounded-full"][class*="absolute"]:not([role]):not([aria-label]):not([data-functional]) {
+        display: none !important;
+      }
+      
+      /* Remove border-only circles */
+      [class*="border"][class*="rounded-full"][class*="absolute"]:not([role]):not([aria-label]):not([data-functional]) {
+        display: none !important;
+      }
+      
+      /* Remove specific decorative classes */
+      .bubble, .decorative-circle, .hero-dot, .floating-dot, .decoration-bubble {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
 </html>

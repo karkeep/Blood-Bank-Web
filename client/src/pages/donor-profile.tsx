@@ -1,6 +1,9 @@
+import React from "react";
+import { useLocation } from "wouter";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth-firebase";
+import { useProfileEdit } from "@/hooks/use-profile-edit";
 import { BloodTypeBadge } from "@/components/ui/blood-type-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,18 +18,28 @@ import { Calendar, Clock, FileText, MapPin, HeartPulse, Award, History } from "l
 
 export default function DonorProfile() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const { 
+    formData,
+    handleEmergencyToggle,
+    isToggling
+  } = useProfileEdit();
   
   if (!user) {
     return null; // Protected route will handle redirecting
   }
   
+  const handleEditProfile = () => {
+    navigate('/edit-profile');
+  };
+  
   return (
     <>
       <Helmet>
-        <title>Donor Profile - LifeLink</title>
+        <title>Donor Profile - Jiwandan</title>
         <meta name="description" content="Manage your donor profile, track your donations, and update your availability for blood donation requests." />
-        <meta property="og:title" content="Donor Profile - LifeLink" />
-        <meta property="og:description" content="Manage your donor profile on LifeLink Emergency Blood Donor Network." />
+        <meta property="og:title" content="Donor Profile - Jiwandan" />
+        <meta property="og:description" content="Manage your donor profile on Jiwandan Emergency Blood Donor Network." />
       </Helmet>
       
       <div className="min-h-screen flex flex-col">
@@ -52,21 +65,21 @@ export default function DonorProfile() {
                   
                   <CardContent>
                     <div className="flex justify-center mb-4">
-                      <BloodTypeBadge type="O+" size="lg" />
+                      <BloodTypeBadge type={user.bloodType || "O+"} size="lg" />
                     </div>
                     
                     <div className="space-y-3">
                       <div className="flex items-center">
                         <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-sm">New York, NY</span>
+                        <span className="text-sm">{user.city || user.location || "Location not set"}</span>
                       </div>
                       <div className="flex items-center">
                         <History className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-sm">Donor since June 2023</span>
+                        <span className="text-sm">Donor since {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                       </div>
                       <div className="flex items-center">
                         <Award className="w-4 h-4 mr-2 text-gray-500" />
-                        <span className="text-sm">5 donations</span>
+                        <span className="text-sm">{user.totalDonations || 0} donations</span>
                       </div>
                     </div>
                     
@@ -74,7 +87,12 @@ export default function DonorProfile() {
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Switch id="emergency-available" />
+                        <Switch 
+                          id="emergency-available" 
+                          checked={formData.emergencyAvailable}
+                          onCheckedChange={handleEmergencyToggle}
+                          disabled={isToggling}
+                        />
                         <Label htmlFor="emergency-available">Available for emergencies</Label>
                       </div>
                     </div>
@@ -85,7 +103,7 @@ export default function DonorProfile() {
                   </CardContent>
                   
                   <CardFooter>
-                    <Button variant="outline" className="w-full">Edit Profile</Button>
+                    <Button variant="outline" className="w-full" onClick={handleEditProfile}>Edit Profile</Button>
                   </CardFooter>
                 </Card>
                 

@@ -1,0 +1,244 @@
+// client/src/components/auth/google-auth-diagnostics.tsx
+import { useState, useEffect } from "react";
+import { auth, googleProvider } from "@/lib/firebase/firebase";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, XCircle, AlertCircle, RefreshCcw } from "lucide-react";
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+
+export function GoogleAuthDiagnostics() {
+  const [diagnostics, setDiagnostics] = useState({
+    firebaseInitialized: false,
+    authInitialized: false,
+    providerConfigured: false,
+    redirectResultChecked: false,
+    popupBlocked: false,
+    errorDetails: null as any,
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Check Firebase initialization
+    checkFirebaseStatus();
+    
+    // Check for redirect result (in case popup was blocked)
+    checkRedirectResult();
+  }, []);
+
+  const checkFirebaseStatus = () => {
+    const status = {
+      firebaseInitialized: !!auth,
+      authInitialized: !!auth && auth.app,
+      providerConfigured: !!googleProvider,
+      redirectResultChecked: false,
+      popupBlocked: false,
+      errorDetails: null,
+    };
+    
+    console.log("🔍 Firebase Status Check:", {
+      auth,
+      googleProvider,
+      authDomain: auth?.app?.options?.authDomain,
+      projectId: auth?.app?.options?.projectId,
+    });
+    
+    setDiagnostics(status);
+  };
+
+  const checkRedirectResult = async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        console.log("✅ Redirect result found:", result);
+        setDiagnostics(prev => ({
+          ...prev,
+          redirectResultChecked: true,
+          errorDetails: { type: 'redirect_success', user: result.user.email }
+        }));
+      }
+    } catch (error) {
+      console.log("No redirect result or error:", error);
+    }
+  };
+
+  const testPopupAuth = async () => {
+    setLoading(true);
+    try {
+      console.log("🚀 Testing popup auth...");
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("✅ Popup auth successful:", result);
+      
+      setDiagnostics(prev => ({
+        ...prev,
+        errorDetails: { type: 'success', user: result.user.email }
+      }));
+    } catch (error: any) {
+      console.error("❌ Popup auth failed:", error);
+      
+      // Check if it's a popup blocked error
+      if (error.code === 'auth/popup-blocked') {
+        setDiagnostics(prev => ({
+          ...prev,
+          popupBlocked: true,
+          errorDetails: error
+        }));
+      } else {
+        setDiagnostics(prev => ({
+          ...prev,
+          errorDetails: error
+        }));
+      }
+    }
+    setLoading(false);
+  };
+
+  const testRedirectAuth = async () => {
+    setLoading(true);
+    try {
+      console.log("🚀 Testing redirect auth...");
+      await signInWithRedirect(auth, googleProvider);
+    } catch (error: any) {
+      console.error("❌ Redirect auth failed:", error);
+      setDiagnostics(prev => ({
+        ...prev,
+        errorDetails: error
+      }));
+      setLoading(false);
+    }
+  };
+
+  const getErrorMessage = (error: any) => {
+    if (!error) return null;
+    
+    const errorMessages: Record<string, string> = {
+      'auth/popup-blocked': 'Popup was blocked by the browser. Try allowing popups or use the redirect method.',
+      'auth/popup-closed-by-user': 'You closed the popup before completing sign-in.',
+      'auth/cancelled-popup-request': 'Another popup request was made before this one completed.',
+      'auth/unauthorized-domain': 'This domain is not authorized for OAuth operations. Add it to Firebase Console.',
+      'auth/operation-not-allowed': 'Google sign-in is not enabled in Firebase Console.',
+      'auth/invalid-api-key': 'Invalid Firebase API key.',
+      'auth/configuration-not-found': 'Firebase project configuration not found.',
+    };
+    
+    return errorMessages[error.code] || error.message;
+  };
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          Google Auth Diagnostics
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Status Checks */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between p-2 border rounded">
+            <span>Firebase Initialized</span>
+            {diagnostics.firebaseInitialized ? (
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-500" />
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between p-2 border rounded">
+            <span>Auth Service Ready</span>
+            {diagnostics.authInitialized ? (
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-500" />
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between p-2 border rounded">
+            <span>Google Provider Configured</span>
+            {diagnostics.providerConfigured ? (
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-500" />
+            )}
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {diagnostics.errorDetails && (
+          <Alert variant={diagnostics.errorDetails.type === 'success' ? 'default' : 'destructive'}>
+            <AlertDescription>
+              {diagnostics.errorDetails.type === 'success' ? (
+                <span>✅ Successfully signed in as: {diagnostics.errorDetails.user}</span>
+              ) : (
+                <div>
+                  <p className="font-semibold">Error: {diagnostics.errorDetails.code}</p>
+                  <p className="text-sm mt-1">{getErrorMessage(diagnostics.errorDetails)}</p>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          <Button 
+            onClick={testPopupAuth} 
+            disabled={loading}
+            className="w-full"
+            variant="default"
+          >
+            {loading ? (
+              <>
+                <RefreshCcw className="w-4 h-4 mr-2 animate-spin" />
+                Testing...
+              </>
+            ) : (
+              'Test Google Sign-In (Popup)'
+            )}
+          </Button>
+          
+          {diagnostics.popupBlocked && (
+            <Button 
+              onClick={testRedirectAuth} 
+              disabled={loading}
+              className="w-full"
+              variant="secondary"
+            >
+              Try Google Sign-In (Redirect)
+            </Button>
+          )}
+        </div>
+
+        {/* Additional Info */}
+        <div className="text-sm text-muted-foreground space-y-1 p-3 bg-muted rounded">
+          <p>📌 <strong>Common Issues:</strong></p>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            <li>Google Sign-In not enabled in Firebase Console</li>
+            <li>Domain not whitelisted in Firebase OAuth settings</li>
+            <li>Popup blockers preventing the sign-in window</li>
+            <li>Incorrect Firebase configuration</li>
+          </ul>
+        </div>
+
+        {/* Firebase Console Link */}
+        <Alert>
+          <AlertDescription>
+            <p className="text-sm">
+              To enable Google Sign-In, go to the{' '}
+              <a 
+                href={`https://console.firebase.google.com/project/${auth?.app?.options?.projectId}/authentication/providers`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Firebase Console → Authentication → Sign-in method
+              </a>
+              {' '}and enable Google.
+            </p>
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
+}

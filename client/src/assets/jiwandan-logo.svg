@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- First blood drop (bigger) -->
+  <path d="M28 5 Q28 42, 14 58 Q0 74, 18 90 Q36 106, 54 90 Q72 74, 58 58 Q44 42, 28 5 Z" fill="#e53e3e" />
+  
+  <!-- Second blood drop (smaller than first) -->
+  <path d="M72 12 Q72 44, 82 55 Q92 66, 80 77 Q68 88, 56 77 Q44 66, 54 55 Q64 44, 72 12 Z" fill="#e53e3e" />
+  
+  <!-- Heartbeat line background (wider stroke, lower position) -->
+  <path d="M25 60 L38 60 L44 40 L56 80 L62 60 L75 60" stroke="#e53e3e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  
+  <!-- Heartbeat line foreground (thinner stroke) -->
+  <path d="M25 60 L38 60 L44 40 L56 80 L62 60 L75 60" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+</svg>

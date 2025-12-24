@@ -13,9 +13,9 @@ export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>LifeLink - Emergency Blood Donor Network</title>
-        <meta name="description" content="Connect with blood donors in emergency situations. LifeLink helps you find compatible blood donors nearby when every minute counts." />
-        <meta property="og:title" content="LifeLink - Emergency Blood Donor Network" />
+        <title>Jiwandan - Emergency Blood Donor Network</title>
+        <meta name="description" content="Connect with blood donors in emergency situations. Jiwandan helps you find compatible blood donors nearby when every minute counts." />
+        <meta property="og:title" content="Jiwandan - Emergency Blood Donor Network" />
         <meta property="og:description" content="A global emergency blood donor coordination system connecting verified donors with recipients in critical situations." />
         <meta property="og:type" content="website" />
       </Helmet>

@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { DonorMap } from "@/components/maps/donor-map";
+import { RealGoogleDonorMap } from "@/components/maps/real-google-donor-map";
+import { DonorList } from "@/components/donors/donor-list";
 import { BloodTypeBadge } from "@/components/ui/blood-type-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,26 +10,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Helmet } from "react-helmet";
-import { Search, MapPin, Clock, Filter } from "lucide-react";
-import { useState } from "react";
+import { Search, MapPin, Clock, Filter, Loader2, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useBloodInventory } from "@/hooks/use-data";
 
 export default function FindDonors() {
   const [searchQuery, setSearchQuery] = useState("");
   const [bloodType, setBloodType] = useState("all");
-  
+  const [maxDistance, setMaxDistance] = useState("25");
+  const [availability, setAvailability] = useState("any");
+  const [sortBy, setSortBy] = useState("distance");
+
+  // Use real inventory data
+  const { inventory: inventoryData, loading: inventoryLoading, error: inventoryError, refetch: refetchInventory } = useBloodInventory();
+
+  // Handle search submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Searching with parameters:", { searchQuery, bloodType, maxDistance, availability, sortBy });
+  };
+
   return (
     <>
       <Helmet>
-        <title>Find Blood Donors - LifeLink</title>
+        <title>Find Blood Donors - Jiwandan</title>
         <meta name="description" content="Locate blood donors near you. Search by location and blood type to find compatible donors for your needs." />
-        <meta property="og:title" content="Find Blood Donors - LifeLink" />
+        <meta property="og:title" content="Find Blood Donors - Jiwandan" />
         <meta property="og:description" content="Find compatible blood donors in your area. Filter by blood type and location." />
       </Helmet>
-      
+
       <div className="min-h-screen flex flex-col">
         <Header />
-        
+
         <main className="flex-grow py-8 bg-gray-50">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -36,10 +51,13 @@ export default function FindDonors() {
                 <h1 className="text-2xl font-bold text-gray-900">Find Blood Donors</h1>
                 <p className="text-gray-600">Search for compatible donors in your area</p>
               </div>
-              
+
               <div className="mt-4 md:mt-0">
                 <div className="flex space-x-2">
-                  <Select value={bloodType} onValueChange={setBloodType}>
+                  <Select
+                    value={bloodType}
+                    onValueChange={(value) => setBloodType(value)}
+                  >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Blood Type" />
                     </SelectTrigger>
@@ -55,8 +73,8 @@ export default function FindDonors() {
                       <SelectItem value="O-">O-</SelectItem>
                     </SelectContent>
                   </Select>
-                  
-                  <Select defaultValue="distance">
+
+                  <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Sort By" />
                     </SelectTrigger>
@@ -69,7 +87,7 @@ export default function FindDonors() {
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Search & Filter Panel */}
               <div className="lg:col-span-1 order-2 lg:order-1">
@@ -81,94 +99,45 @@ export default function FindDonors() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <form onSubmit={handleSearch} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="location">Location</Label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-                          <Input 
+                          <Input
                             id="location"
-                            placeholder="Enter city or address" 
+                            placeholder="Enter city or address"
                             className="pl-10"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                           />
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="bloodType">Blood Type Needed</Label>
                         <div className="grid grid-cols-4 gap-2">
-                          <Button
-                            variant={bloodType === "A+" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("A+")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            A+
-                          </Button>
-                          <Button
-                            variant={bloodType === "B+" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("B+")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            B+
-                          </Button>
-                          <Button
-                            variant={bloodType === "AB+" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("AB+")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            AB+
-                          </Button>
-                          <Button
-                            variant={bloodType === "O+" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("O+")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            O+
-                          </Button>
-                          <Button
-                            variant={bloodType === "A-" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("A-")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            A-
-                          </Button>
-                          <Button
-                            variant={bloodType === "B-" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("B-")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            B-
-                          </Button>
-                          <Button
-                            variant={bloodType === "AB-" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("AB-")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            AB-
-                          </Button>
-                          <Button
-                            variant={bloodType === "O-" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setBloodType("O-")}
-                            className="flex items-center justify-center h-10"
-                          >
-                            O-
-                          </Button>
+                          {[
+                            "A+", "B+", "AB+", "O+",
+                            "A-", "B-", "AB-", "O-"
+                          ].map((type) => (
+                            <Button
+                              key={type}
+                              type="button"
+                              variant={bloodType === type ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setBloodType(prev => prev === type ? "all" : type)}
+                              className="flex items-center justify-center h-10"
+                            >
+                              {type}
+                            </Button>
+                          ))}
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="distance">Maximum Distance</Label>
-                        <Select defaultValue="25">
+                        <Select value={maxDistance} onValueChange={setMaxDistance}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select distance" />
                           </SelectTrigger>
@@ -181,10 +150,10 @@ export default function FindDonors() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="availability">Availability</Label>
-                        <Select defaultValue="any">
+                        <Select value={availability} onValueChange={setAvailability}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select availability" />
                           </SelectTrigger>
@@ -196,230 +165,154 @@ export default function FindDonors() {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <Button type="submit" className="w-full">
                         Search Donors
                       </Button>
-                    </div>
+                    </form>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Blood Inventory Status
-                    </CardTitle>
-                    <CardDescription>Current inventory levels in New York</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base flex items-center">
+                          <Filter className="h-4 w-4 mr-2" />
+                          Blood Inventory Status
+                        </CardTitle>
+                        <CardDescription>Current inventory levels</CardDescription>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={refetchInventory}
+                        disabled={inventoryLoading}
+                      >
+                        <RefreshCw className={`h-4 w-4 ${inventoryLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="flex items-center">
-                            <BloodTypeBadge type="O-" size="sm" className="mr-2" />
-                            O- (Universal)
-                          </span>
-                          <span className="text-red-600 font-medium">Critical</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-red-500 h-2 rounded-full" style={{ width: '10%' }}></div>
+                    {inventoryLoading ? (
+                      <div className="flex justify-center py-4">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <span className="text-sm text-gray-600">Loading inventory...</span>
                         </div>
                       </div>
-                      
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="flex items-center">
-                            <BloodTypeBadge type="A+" size="sm" className="mr-2" />
-                            A+
-                          </span>
-                          <span className="text-yellow-600 font-medium">Low</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '30%' }}></div>
-                        </div>
+                    ) : inventoryError ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-red-600 mb-2">Failed to load inventory</p>
+                        <Button size="sm" onClick={refetchInventory}>Try Again</Button>
                       </div>
-                      
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="flex items-center">
-                            <BloodTypeBadge type="B+" size="sm" className="mr-2" />
-                            B+
-                          </span>
-                          <span className="text-yellow-600 font-medium">Low</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-yellow-500 h-2 rounded-full" style={{ width: '45%' }}></div>
-                        </div>
+                    ) : inventoryData.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500">No inventory data available</p>
                       </div>
-                      
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="flex items-center">
-                            <BloodTypeBadge type="AB+" size="sm" className="mr-2" />
-                            AB+
-                          </span>
-                          <span className="text-green-600 font-medium">Adequate</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ width: '65%' }}></div>
-                        </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {inventoryData.slice(0, 6).map((item) => {
+                          const units = item.units || 0;
+                          const maxUnits = 200; // Assume max capacity
+                          const percentage = Math.min((units / maxUnits) * 100, 100);
+                          const status = percentage < 20 ? 'Critical' : percentage < 50 ? 'Low' : percentage < 80 ? 'Adequate' : 'Good';
+                          const statusColor = percentage < 20 ? 'text-red-600' : percentage < 50 ? 'text-yellow-600' : percentage < 80 ? 'text-blue-600' : 'text-green-600';
+                          const barColor = percentage < 20 ? 'bg-red-500' : percentage < 50 ? 'bg-yellow-500' : percentage < 80 ? 'bg-blue-500' : 'bg-green-500';
+
+                          return (
+                            <div key={item.id || item.type}>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="flex items-center">
+                                  <BloodTypeBadge type={item.type} size="sm" className="mr-2" />
+                                  {item.type} {item.type === 'O-' ? '(Universal)' : ''}
+                                </span>
+                                <span className={`font-medium ${statusColor}`}>{status}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`${barColor} h-2 rounded-full transition-all duration-300`}
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>{units} units</span>
+                                <span>{item.location || 'Unknown location'}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="flex items-center">
-                            <BloodTypeBadge type="O+" size="sm" className="mr-2" />
-                            O+
-                          </span>
-                          <span className="text-green-600 font-medium">Good</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
-              
+
               {/* Map and Results */}
               <div className="lg:col-span-2 order-1 lg:order-2">
-                <Tabs defaultValue="map">
+                <Tabs defaultValue="map" className="w-full">
                   <TabsList className="mb-4">
                     <TabsTrigger value="map">Map View</TabsTrigger>
                     <TabsTrigger value="list">List View</TabsTrigger>
                   </TabsList>
-                  
-                  <TabsContent value="map">
+
+                  {bloodType !== "all" && (
+                    <div className="mb-4 flex items-center space-x-2 bg-blue-50 border border-blue-200 p-2 rounded-md">
+                      <div className="text-blue-700 text-sm flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Currently showing <strong>{bloodType}</strong> blood type donors
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-6 px-2 text-xs"
+                          onClick={() => setBloodType("all")}
+                        >
+                          Clear filter
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <TabsContent value="map" className="min-h-[400px]">
                     <Card>
                       <CardContent className="p-0 overflow-hidden rounded-lg">
-                        <DonorMap bloodType={bloodType} searchQuery={searchQuery} />
+                        {/* Static wrapper to prevent re-mounting + Error boundary */}
+                        <ErrorBoundary fallback={
+                          <div className="flex items-center justify-center h-[400px] bg-gray-50">
+                            <div className="text-center p-6">
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">Map Error</h3>
+                              <p className="text-gray-500 mb-4">
+                                There was a problem loading the map.
+                                Please refresh the page to try again.
+                              </p>
+                              <Button
+                                onClick={() => window.location.reload()}
+                                variant="outline"
+                              >
+                                Refresh Page
+                              </Button>
+                            </div>
+                          </div>
+                        }>
+                          <div className="donor-map-container" style={{ height: '450px', position: 'relative', minWidth: '600px' }}>
+                            <RealGoogleDonorMap bloodTypeFilter={bloodType} />
+                          </div>
+                        </ErrorBoundary>
                       </CardContent>
                     </Card>
                   </TabsContent>
-                  
+
                   <TabsContent value="list">
-                    <div className="space-y-4">
-                      {/* Sample donor cards - would be generated from API data */}
-                      <Card className="donor-card">
-                        <CardContent className="p-4">
-                          <div className="flex items-start">
-                            <BloodTypeBadge type="O+" className="flex-shrink-0 mr-4" />
-                            
-                            <div className="flex-grow">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h3 className="font-medium">Anonymous Donor #12458</h3>
-                                  <div className="flex items-center mt-1 text-sm text-gray-500">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    <span>Upper East Side, 1.3 miles away</span>
-                                  </div>
-                                </div>
-                                <Badge variant="secondary">Available Now</Badge>
-                              </div>
-                              
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <Badge variant="outline">24 donations</Badge>
-                                <Badge variant="outline">Gold Donor</Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Verified
-                                </Badge>
-                              </div>
-                              
-                              <div className="mt-3 flex items-center justify-between">
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <Clock className="h-4 w-4 mr-1" />
-                                  <span>Last donation: 3 months ago</span>
-                                </div>
-                                <Button size="sm">Contact</Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card className="donor-card">
-                        <CardContent className="p-4">
-                          <div className="flex items-start">
-                            <BloodTypeBadge type="A-" className="flex-shrink-0 mr-4" />
-                            
-                            <div className="flex-grow">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h3 className="font-medium">Anonymous Donor #23571</h3>
-                                  <div className="flex items-center mt-1 text-sm text-gray-500">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    <span>Chelsea, 2.7 miles away</span>
-                                  </div>
-                                </div>
-                                <Badge variant="secondary">Available Today</Badge>
-                              </div>
-                              
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <Badge variant="outline">18 donations</Badge>
-                                <Badge variant="outline">Silver Donor</Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Verified
-                                </Badge>
-                              </div>
-                              
-                              <div className="mt-3 flex items-center justify-between">
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <Clock className="h-4 w-4 mr-1" />
-                                  <span>Last donation: 2 months ago</span>
-                                </div>
-                                <Button size="sm">Contact</Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card className="donor-card">
-                        <CardContent className="p-4">
-                          <div className="flex items-start">
-                            <BloodTypeBadge type="O-" className="flex-shrink-0 mr-4" />
-                            
-                            <div className="flex-grow">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h3 className="font-medium">Anonymous Donor #34782</h3>
-                                  <div className="flex items-center mt-1 text-sm text-gray-500">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    <span>Brooklyn Heights, 3.5 miles away</span>
-                                  </div>
-                                </div>
-                                <Badge>Available This Week</Badge>
-                              </div>
-                              
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <Badge variant="outline">12 donations</Badge>
-                                <Badge variant="outline">Bronze Donor</Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  Verified
-                                </Badge>
-                              </div>
-                              
-                              <div className="mt-3 flex items-center justify-between">
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <Clock className="h-4 w-4 mr-1" />
-                                  <span>Last donation: 1 month ago</span>
-                                </div>
-                                <Button size="sm">Contact</Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                    <DonorList bloodType={bloodType} searchQuery={searchQuery} />
                   </TabsContent>
                 </Tabs>
               </div>
             </div>
           </div>
         </main>
-        
+
         <Footer />
       </div>
     </>

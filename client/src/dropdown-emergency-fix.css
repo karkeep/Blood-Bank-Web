@@ -1,0 +1,39 @@
+/* IMMEDIATE DROPDOWN FIX - Critical CSS for dropdown visibility */
+[data-radix-dropdown-menu-content] {
+  z-index: 99999 !important;
+  position: fixed !important;
+  background: white !important;
+  border: 1px solid #ccc !important;
+  border-radius: 6px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+  min-width: 200px !important;
+  padding: 8px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+[data-radix-dropdown-menu-item] {
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+[data-radix-dropdown-menu-item]:hover {
+  background-color: #f3f4f6 !important;
+}
+
+[data-radix-dropdown-menu-separator] {
+  height: 1px !important;
+  background-color: #e5e7eb !important;
+  margin: 4px 0 !important;
+}
+
+[data-radix-dropdown-menu-label] {
+  padding: 8px 12px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}

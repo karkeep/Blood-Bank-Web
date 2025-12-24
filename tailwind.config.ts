@@ -11,6 +11,54 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        // Blood theme colors
+        blood: {
+          50: '#fef2f2',   // Very light red/pink
+          100: '#fee2e2',  // Light pink
+          200: '#fecaca',  // Light red
+          300: '#fca5a5',  // Medium light red
+          400: '#f87171',  // Medium red
+          500: '#ef4444',  // Standard red
+          600: '#dc2626',  // Dark red (primary)
+          700: '#b91c1c',  // Darker red
+          800: '#991b1b',  // Very dark red
+          900: '#7f1d1d',  // Deepest red
+          950: '#450a0a',  // Almost black red
+        },
+        
+        // Enhanced primary colors for blood theme
+        primary: {
+          DEFAULT: '#dc2626',      // Blood red
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#ef4444',
+          600: '#dc2626',          // Main primary
+          700: '#b91c1c',          // primary-dark
+          800: '#991b1b',
+          900: '#7f1d1d',
+          950: '#450a0a',
+          foreground: '#ffffff',
+          dark: '#b91c1c',         // primary-dark alias
+        },
+        
+        // Complementary colors for blood theme
+        life: {
+          50: '#f0fdf4',   // Very light green (life/health)
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',  // Life green
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
+        },
+        
+        // Existing colors with HSL variables
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -20,10 +68,6 @@ export default {
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
-        },
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -79,10 +123,44 @@ export default {
             height: "0",
           },
         },
+        // Blood pulse animation
+        "blood-pulse": {
+          "0%, 100%": {
+            opacity: "1",
+            transform: "scale(1)",
+          },
+          "50%": {
+            opacity: "0.8", 
+            transform: "scale(1.05)",
+          },
+        },
+        // Heartbeat animation
+        "heartbeat": {
+          "0%, 50%, 100%": {
+            transform: "scale(1)",
+          },
+          "25%": {
+            transform: "scale(1.1)",
+          },
+          "75%": {
+            transform: "scale(1.05)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "blood-pulse": "blood-pulse 2s ease-in-out infinite",
+        "heartbeat": "heartbeat 1.5s ease-in-out infinite",
+      },
+      backgroundImage: {
+        'blood-gradient': 'linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%)',
+        'life-gradient': 'linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%)',
+      },
+      boxShadow: {
+        'blood': '0 4px 14px 0 rgba(220, 38, 38, 0.3)',
+        'blood-lg': '0 10px 25px -3px rgba(220, 38, 38, 0.3), 0 4px 6px -2px rgba(220, 38, 38, 0.1)',
+        'life': '0 4px 14px 0 rgba(34, 197, 94, 0.3)',
       },
     },
   },

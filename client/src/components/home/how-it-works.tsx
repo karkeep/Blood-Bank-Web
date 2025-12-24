@@ -4,9 +4,9 @@ import { UserPlus, MapPin, Bell } from "lucide-react";
 
 export function HowItWorks() {
   return (
-    <section className="py-12 bg-white">
+    <section id="how-it-works" className="py-12 bg-white">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">How LifeLink Works</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2 text-center">How Jiwandan Works</h2>
         <p className="text-gray-600 text-center mb-8">Simple steps to save lives</p>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
